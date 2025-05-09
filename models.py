@@ -14,3 +14,4 @@ class Artista(BaseModel):
     activo: bool
     genero_principal: str
     eliminado: bool = False
+#
