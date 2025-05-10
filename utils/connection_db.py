@@ -1,0 +1,26 @@
+from sqlalchemy.ext.asyncio import create_async_engine
+from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.declarative import declarative_base
+from sqlmodel import SQLModel
+
+CLEVER_DB = (
+    "postgresql+asyncpg://ubydtzfq76agbyx9yxwr:XIiqD55NfbI6HMVOkWJWdUNSquwC4c@"
+    "btng9poyhgttpjvdekzs-postgresql.services.clever-cloud.com:"
+    "50013/ubydtzfq76agbyx9yxwr"
+)
+
+engine = create_async_engine(CLEVER_DB, echo=True, future=True)
+
+async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+Base = declarative_base()
+
+async def init_db():
+    async with engine.begin() as conn:
+        await conn.run_sync(SQLModel.metadata.create_all)
+
+async def get_session():
+    async with async_session() as session:
+        yield session
+#A
