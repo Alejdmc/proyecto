@@ -22,31 +22,32 @@ document.addEventListener("DOMContentLoaded", function() {
         .catch(error => {
             console.error("Error al cargar canciones:", error);
         });
-});
 
-// static/js/artistas.js
+    const form = document.getElementById("form-cancion");
+    if (form) {
+        form.addEventListener("submit", function(e) {
+            e.preventDefault();
+            const data = {
+                titulo: form.titulo.value,
+                genero: form.genero.value,
+                duracion: parseFloat(form.duracion.value),
+                artista_id: parseInt(form.artista_id.value),
+                explicita: form.explicita.checked
+            };
 
-document.addEventListener("DOMContentLoaded", function() {
-    fetch("/artistas")
-        .then(response => response.json())
-        .then(artistas => {
-            const lista = document.getElementById("artistas-lista");
-            if (artistas.length === 0) {
-                lista.innerHTML = "<p>No hay artistas registrados.</p>";
-            } else {
-                artistas.forEach(artista => {
-                    const item = document.createElement("div");
-                    item.classList.add("card", "mb-3", "p-3");
-                    item.innerHTML = `
-                        <h5>${artista.nombre} (${artista.genero_principal})</h5>
-                        <p>País: ${artista.pais}</p>
-                        <p>${artista.activo ? "Activo" : "Inactivo"}</p>
-                    `;
-                    lista.appendChild(item);
-                });
-            }
-        })
-        .catch(error => {
-            console.error("Error al cargar artistas:", error);
+            fetch("/canciones", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(res => {
+                alert("Canción agregada correctamente");
+                window.location.reload();
+            })
+            .catch(error => {
+                console.error("Error al agregar canción:", error);
+            });
         });
+    }
 });
