@@ -1,53 +1,39 @@
-document.addEventListener("DOMContentLoaded", function() {
-    fetch("/canciones")
-        .then(response => response.json())
-        .then(canciones => {
-            const lista = document.getElementById("canciones-lista");
-            if (canciones.length === 0) {
-                lista.innerHTML = "<p>No hay canciones registradas.</p>";
-            } else {
-                canciones.forEach(cancion => {
-                    const item = document.createElement("div");
-                    item.classList.add("card", "mb-3", "p-3");
-                    item.innerHTML = `
-                        <h5>${cancion.titulo} (${cancion.genero})</h5>
-                        <p>Duración: ${cancion.duracion} min</p>
-                        <p>Artista ID: ${cancion.artista_id}</p>
-                        <p>${cancion.explicita ? "Explícita" : "No explícita"}</p>
-                    `;
-                    lista.appendChild(item);
-                });
-            }
-        })
-        .catch(error => {
-            console.error("Error al cargar canciones:", error);
-        });
+document.getElementById('form-cancion').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const data = {
+        titulo: form.titulo.value,
+        genero: form.genero.value,
+        duracion: parseFloat(form.duracion.value),
+        artista: form.artista.value,
+        explicita: form.explicita.checked
+    };
 
-    const form = document.getElementById("form-cancion");
-    if (form) {
-        form.addEventListener("submit", function(e) {
-            e.preventDefault();
-            const data = {
-                titulo: form.titulo.value,
-                genero: form.genero.value,
-                duracion: parseFloat(form.duracion.value),
-                artista_id: parseInt(form.artista_id.value),
-                explicita: form.explicita.checked
-            };
+    const res = await fetch('/api/canciones', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    });
 
-            fetch("/canciones", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(data)
-            })
-            .then(response => response.json())
-            .then(res => {
-                alert("Canción agregada correctamente");
-                window.location.reload();
-            })
-            .catch(error => {
-                console.error("Error al agregar canción:", error);
-            });
-        });
+    if (res.ok) {
+        alert('Canción agregada');
+        loadCanciones();
+        form.reset();
+    } else {
+        const err = await res.json();
+        alert('Error: ' + err.detail);
     }
 });
+
+async function loadCanciones() {
+    const res = await fetch('/api/canciones');
+    const lista = await res.json();
+    const tbody = document.querySelector('#tabla-canciones tbody');
+    tbody.innerHTML = '';
+    lista.forEach(c => {
+        const row = `<tr><td>${c.titulo}</td><td>${c.genero}</td><td>${c.duracion}</td><td>${c.artista}</td><td>${c.explicita ? 'Sí' : 'No'}</td></tr>`;
+        tbody.innerHTML += row;
+    });
+}
+
+document.addEventListener('DOMContentLoaded', loadCanciones);

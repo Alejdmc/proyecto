@@ -1,51 +1,38 @@
-document.addEventListener("DOMContentLoaded", function() {
-    fetch("/artistas")
-        .then(response => response.json())
-        .then(artistas => {
-            const lista = document.getElementById("artistas-lista");
-            if (artistas.length === 0) {
-                lista.innerHTML = "<p>No hay artistas registrados.</p>";
-            } else {
-                artistas.forEach(artista => {
-                    const item = document.createElement("div");
-                    item.classList.add("card", "mb-3", "p-3");
-                    item.innerHTML = `
-                        <h5>${artista.nombre} (${artista.genero_principal})</h5>
-                        <p>País: ${artista.pais}</p>
-                        <p>${artista.activo ? "Activo" : "Inactivo"}</p>
-                    `;
-                    lista.appendChild(item);
-                });
-            }
-        })
-        .catch(error => {
-            console.error("Error al cargar artistas:", error);
-        });
+document.getElementById('form-artista').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const data = {
+        nombre: form.nombre.value,
+        pais: form.pais.value,
+        genero_principal: form.genero_principal.value,
+        activo: form.activo.checked
+    };
 
-    const form = document.getElementById("form-artista");
-    if (form) {
-        form.addEventListener("submit", function(e) {
-            e.preventDefault();
-            const data = {
-                nombre: form.nombre.value,
-                pais: form.pais.value,
-                genero_principal: form.genero_principal.value,
-                activo: form.activo.checked
-            };
+    const res = await fetch('/api/artistas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    });
 
-            fetch("/artistas", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(data)
-            })
-            .then(response => response.json())
-            .then(res => {
-                alert("Artista agregado correctamente");
-                window.location.reload();
-            })
-            .catch(error => {
-                console.error("Error al agregar artista:", error);
-            });
-        });
+    if (res.ok) {
+        alert('Artista agregado');
+        loadArtistas();
+        form.reset();
+    } else {
+        const err = await res.json();
+        alert('Error: ' + err.detail);
     }
 });
+
+async function loadArtistas() {
+    const res = await fetch('/api/artistas');
+    const lista = await res.json();
+    const tbody = document.querySelector('#tabla-artistas tbody');
+    tbody.innerHTML = '';
+    lista.forEach(a => {
+        const row = `<tr><td>${a.nombre}</td><td>${a.pais}</td><td>${a.genero_principal}</td><td>${a.activo ? 'Sí' : 'No'}</td></tr>`;
+        tbody.innerHTML += row;
+    });
+}
+
+document.addEventListener('DOMContentLoaded', loadArtistas);
