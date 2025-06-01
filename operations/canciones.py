@@ -24,4 +24,3 @@ def escribir_canciones(canciones: List[Cancion]):
         escritor.writeheader()
         for cancion in canciones:
             escritor.writerow(cancion.model_dump())
-
