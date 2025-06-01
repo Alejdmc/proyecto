@@ -49,3 +49,33 @@ async def buscar_artista_por_nombre(nombre: str, session: AsyncSession = Depends
 async def obtener_todos_artistas(session: AsyncSession = Depends(get_session)):
     result = await session.execute(select(Artista))
     return result.scalars().all()
+@ruta_artistas.put("/{artista_id}")
+async def modificar_total_artista(artista_id: int, artista_data: Artista, session: AsyncSession = Depends(get_session)):
+    artista = await session.get(Artista, artista_id)
+    if not artista:
+        raise HTTPException(status_code=404, detail="Artista no encontrado")
+    artista.nombre = artista_data.nombre
+    artista.pais = artista_data.pais
+    artista.genero_principal = artista_data.genero_principal
+    artista.activo = artista_data.activo
+    artista.eliminado = artista_data.eliminado
+    artista.imagen = artista_data.imagen
+    session.add(artista)
+    await session.commit()
+    return {"mensaje": "Artista modificado completamente"}
+
+@ruta_artistas.get("/filtro/pais/{pais}")
+async def filtrar_artistas_por_pais(pais: str, session: AsyncSession = Depends(get_session)):
+    result = await session.execute(select(Artista).where(Artista.pais.ilike(f"%{pais}%")))
+    return result.scalars().all()
+
+@ruta_artistas.get("/estadisticas")
+async def estadisticas_artistas(session: AsyncSession = Depends(get_session)):
+    total = await session.execute(select(Artista))
+    activos = await session.execute(select(Artista).where(Artista.activo == True))
+    eliminados = await session.execute(select(Artista).where(Artista.eliminado == True))
+    return {
+        "total_artistas": len(total.scalars().all()),
+        "activos": len(activos.scalars().all()),
+        "eliminados": len(eliminados.scalars().all())
+    }
