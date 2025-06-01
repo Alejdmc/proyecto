@@ -1,17 +1,20 @@
-from pydantic import BaseModel
+from sqlmodel import SQLModel, Field
+from typing import Optional
 
-class Cancion(BaseModel):
+class Artista(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    nombre: str
+    pais: str
+    genero_principal: str
+    activo: bool = True
+    eliminado: bool = False
+    imagen: Optional[str] = None
+
+class Cancion(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
     titulo: str
     genero: str
     duracion: float
-    artista: str
-    explicita: bool
+    artista_id: int
+    explicita: bool = False
     eliminado: bool = False
-
-class Artista(BaseModel):
-    nombre: str
-    pais: str
-    activo: bool
-    genero_principal: str
-    eliminado: bool = False
-#

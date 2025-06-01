@@ -1,93 +1,50 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import select
 from models import Cancion
-from operations.canciones import leer_canciones, escribir_canciones, ARCHIVO_CANCIONES
-import os
-import csv
+from utils.connection_db import get_session
 
 ruta_canciones = APIRouter(prefix="/canciones", tags=["canciones"])
 
-@ruta_canciones.get("/todas")
-def obtener_todas_las_canciones():
-    canciones = []
-    if not os.path.exists(ARCHIVO_CANCIONES):
-        return canciones
-    with open(ARCHIVO_CANCIONES, newline="", encoding="utf-8") as f:
-        lector = csv.DictReader(f)
-        for fila in lector:
-            fila["duracion"] = float(fila["duracion"])
-            fila["explicita"] = fila["explicita"].lower() == "true"
-            fila["eliminado"] = fila.get("eliminado", "false").lower() == "true"
-            canciones.append(Cancion(
-                titulo=fila["titulo"],
-                genero=fila["genero"],
-                duracion=fila["duracion"],
-                artista=fila["artista"],
-                explicita=fila["explicita"],
-                eliminado=fila["eliminado"]
-            ))
-    return canciones
-@ruta_canciones.get("/")
-def obtener_canciones():
-    return leer_canciones()
-
 @ruta_canciones.post("/")
-def agregar_cancion(cancion: Cancion):
-    canciones = leer_canciones()
-    if any(c.titulo.lower() == cancion.titulo.lower() for c in canciones):
-        raise HTTPException(status_code=400, detail="Ya existe una cancion con ese título")
-    canciones.append(cancion)
-    escribir_canciones(canciones)
-    return {"mensaje": "Cancion agregada correctamente"}
+async def agregar_cancion(cancion: Cancion, session: AsyncSession = Depends(get_session)):
+    session.add(cancion)
+    await session.commit()
+    await session.refresh(cancion)
+    return cancion
 
-@ruta_canciones.delete("/{titulo}")
-def eliminar_cancion(titulo: str):
-    ARCHIVO_CANCIONES = "canciones.csv"
-    if not os.path.exists(ARCHIVO_CANCIONES):
-        raise HTTPException(status_code=404, detail="No hay canciones registradas")
-    actualizado = []
-    encontrado = False
-    with open(ARCHIVO_CANCIONES, newline="", encoding="utf-8") as f:
-        lector = csv.DictReader(f)
-        for fila in lector:
-            if fila["titulo"].lower() == titulo.lower() and fila.get("eliminado", "false").lower() != "true":
-                fila["eliminado"] = "true"
-                encontrado = True
-            actualizado.append(fila)
-    if not encontrado:
+@ruta_canciones.get("/")
+async def obtener_canciones(session: AsyncSession = Depends(get_session)):
+    result = await session.execute(select(Cancion).where(Cancion.eliminado == False))
+    return result.scalars().all()
+
+@ruta_canciones.delete("/{cancion_id}")
+async def eliminar_cancion(cancion_id: int, session: AsyncSession = Depends(get_session)):
+    cancion = await session.get(Cancion, cancion_id)
+    if not cancion:
         raise HTTPException(status_code=404, detail="Canción no encontrada")
-    with open(ARCHIVO_CANCIONES, "w", newline="", encoding="utf-8") as f:
-        escritor = csv.DictWriter(f, fieldnames=actualizado[0].keys())
-        escritor.writeheader()
-        for fila in actualizado:
-            escritor.writerow(fila)
-    return {"mensaje": "Canción eliminada (marcada como eliminada, no borrada)"}
+    cancion.eliminado = True
+    session.add(cancion)
+    await session.commit()
+    return {"mensaje": "Canción eliminada (marcada como eliminada)"}
+@ruta_canciones.patch("/{cancion_id}")
+async def modificar_parcial_cancion(cancion_id: int, datos: dict, session: AsyncSession = Depends(get_session)):
+    cancion = await session.get(Cancion, cancion_id)
+    if not cancion:
+        raise HTTPException(status_code=404, detail="Canción no encontrada")
+    for key, value in datos.items():
+        if hasattr(cancion, key):
+            setattr(cancion, key, value)
+    session.add(cancion)
+    await session.commit()
+    return {"mensaje": "Canción modificada parcialmente"}
 
-@ruta_canciones.get("/buscar/genero/{genero}")
-def buscar_canciones_por_genero(genero: str):
-    canciones = []
-    if not os.path.exists(ARCHIVO_CANCIONES):
-        return canciones
-    with open(ARCHIVO_CANCIONES, newline="", encoding="utf-8") as f:
-        lector = csv.DictReader(f)
-        for fila in lector:
-            if fila["genero"].lower() == genero.lower():
-                fila["duracion"] = float(fila["duracion"])
-                fila["explicita"] = fila["explicita"].lower() == "true"
-                fila["eliminado"] = fila.get("eliminado", "false").lower() == "true"
-                canciones.append(Cancion(**fila))
-    return canciones
+@ruta_canciones.get("/buscar/titulo/{titulo}")
+async def buscar_cancion_por_titulo(titulo: str, session: AsyncSession = Depends(get_session)):
+    result = await session.execute(select(Cancion).where(Cancion.titulo.ilike(f"%{titulo}%")))
+    return result.scalars().all()
 
-@ruta_canciones.get("/eliminadas")
-def obtener_canciones_eliminadas():
-    canciones = []
-    if not os.path.exists(ARCHIVO_CANCIONES):
-        return canciones
-    with open(ARCHIVO_CANCIONES, newline="", encoding="utf-8") as f:
-        lector = csv.DictReader(f)
-        for fila in lector:
-            fila["duracion"] = float(fila["duracion"])
-            fila["explicita"] = fila["explicita"].lower() == "true"
-            fila["eliminado"] = fila.get("eliminado", "false").lower() == "true"
-            if fila["eliminado"]:
-                canciones.append(Cancion(**fila))
-    return canciones
+@ruta_canciones.get("/historial")
+async def obtener_todas_canciones(session: AsyncSession = Depends(get_session)):
+    result = await session.execute(select(Cancion))
+    return result.scalars().all()
