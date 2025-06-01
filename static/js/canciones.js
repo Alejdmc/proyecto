@@ -9,15 +9,15 @@ document.getElementById('form-cancion').addEventListener('submit', async (e) => 
         explicita: form.explicita.checked
     };
 
-    const res = await fetch('/api/canciones', {
+    const res = await fetch('/api/canciones_db', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
     });
 
     if (res.ok) {
-        alert('Canción agregada');
-        loadCanciones();
+        alert('Canción agregada localmente');
+        loadCancionesLocal();
         form.reset();
     } else {
         const err = await res.json();
@@ -25,8 +25,8 @@ document.getElementById('form-cancion').addEventListener('submit', async (e) => 
     }
 });
 
-async function loadCanciones() {
-    const res = await fetch('/api/canciones');
+async function loadCancionesLocal() {
+    const res = await fetch('/api/canciones_db');
     const lista = await res.json();
     const tbody = document.querySelector('#tabla-canciones tbody');
     tbody.innerHTML = '';
@@ -36,4 +36,21 @@ async function loadCanciones() {
     });
 }
 
-document.addEventListener('DOMContentLoaded', loadCanciones);
+async function searchCancionesSpotify(query) {
+    const res = await fetch(`/api/spotify/canciones?q=${encodeURIComponent(query)}`);
+    const data = await res.json();
+    const tbody = document.querySelector('#tabla-spotify-canciones tbody');
+    tbody.innerHTML = '';
+    data.tracks.items.forEach(c => {
+        const row = `<tr><td>${c.name}</td><td>${c.artists.map(a => a.name).join(', ')}</td><td>${c.album.name}</td></tr>`;
+        tbody.innerHTML += row;
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadCancionesLocal();
+    document.getElementById('spotify-search-btn').addEventListener('click', () => {
+        const query = document.getElementById('spotify-query').value;
+        searchCancionesSpotify(query);
+    });
+});

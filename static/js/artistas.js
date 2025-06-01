@@ -8,15 +8,15 @@ document.getElementById('form-artista').addEventListener('submit', async (e) => 
         activo: form.activo.checked
     };
 
-    const res = await fetch('/api/artistas', {
+    const res = await fetch('/api/artistas_db', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
     });
 
     if (res.ok) {
-        alert('Artista agregado');
-        loadArtistas();
+        alert('Artista agregado localmente');
+        loadArtistasLocal();
         form.reset();
     } else {
         const err = await res.json();
@@ -24,8 +24,8 @@ document.getElementById('form-artista').addEventListener('submit', async (e) => 
     }
 });
 
-async function loadArtistas() {
-    const res = await fetch('/api/artistas');
+async function loadArtistasLocal() {
+    const res = await fetch('/api/artistas_db');
     const lista = await res.json();
     const tbody = document.querySelector('#tabla-artistas tbody');
     tbody.innerHTML = '';
@@ -35,4 +35,21 @@ async function loadArtistas() {
     });
 }
 
-document.addEventListener('DOMContentLoaded', loadArtistas);
+async function searchArtistasSpotify(query) {
+    const res = await fetch(`/api/spotify/artistas?q=${encodeURIComponent(query)}`);
+    const data = await res.json();
+    const tbody = document.querySelector('#tabla-spotify-artistas tbody');
+    tbody.innerHTML = '';
+    data.artists.items.forEach(a => {
+        const row = `<tr><td>${a.name}</td><td>${a.genres.join(', ')}</td><td>${a.popularity}</td></tr>`;
+        tbody.innerHTML += row;
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadArtistasLocal();
+    document.getElementById('spotify-search-btn').addEventListener('click', () => {
+        const query = document.getElementById('spotify-query').value;
+        searchArtistasSpotify(query);
+    });
+});
