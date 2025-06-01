@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Proyecto Integrador - Música</title>
+    <!-- Aquí puedes enlazar tu hoja de estilos CSS -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>🎵 Proyecto Integrador: Canciones y Artistas 🎵</h1>
+        <nav>
+            <ul>
+                <li><a href="/">Inicio</a></li>
+                <li><a href="/artistas">Artistas</a></li>
+                <li><a href="/canciones">Canciones</a></li>
+                <li><a href="/estadisticas">Estadísticas</a></li>
+                <li><a href="/desarrollador">Sobre el Desarrollador</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section id="agregar-artista">
+            <h2>Agregar Artista</h2>
+            <form action="/artistas" method="post" enctype="multipart/form-data">
+                <label>Nombre: <input type="text" name="nombre" required></label><br>
+                <label>País: <input type="text" name="pais" required></label><br>
+                <label>Género Principal: <input type="text" name="genero_principal" required></label><br>
+                <label>Activo: <input type="checkbox" name="activo"></label><br>
+                <label>Imagen: <input type="file" name="imagen"></label><br>
+                <button type="submit">Agregar Artista</button>
+            </form>
+        </section>
+
+        <section id="agregar-cancion">
+            <h2>Agregar Canción</h2>
+            <form action="/canciones" method="post">
+                <label>Título: <input type="text" name="titulo" required></label><br>
+                <label>Género: <input type="text" name="genero" required></label><br>
+                <label>Duración (minutos): <input type="number" step="0.01" name="duracion" required></label><br>
+                <label>Artista: <input type="text" name="artista" required></label><br>
+                <label>Explícita: <input type="checkbox" name="explicita"></label><br>
+                <button type="submit">Agregar Canción</button>
+            </form>
+        </section>
+
+        <section id="consulta">
+            <h2>Consultar Artistas o Canciones</h2>
+            <form action="/buscar" method="get">
+                <label>Búsqueda: <input type="text" name="query"></label>
+                <button type="submit">Buscar</button>
+            </form>
+        </section>
+    </main>
+
+    <footer>
+        <p>© 2025 Proyecto Integrador - Desarrollo de Software</p>
+    </footer>
+</body>
+</html>
