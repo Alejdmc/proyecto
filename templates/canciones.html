@@ -3,40 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <title>Canciones</title>
+    <link rel="stylesheet" href="/static/css/ie6.css">
+    <link rel="stylesheet" href="/static/css/layout.css">
     <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Press Start 2P', cursive; }
+        main.content { margin-top: 120px; padding: 60px; }
+        table, form, .spotify-section, .local-query-section, .extra-query-section { margin: 30px auto; width: 85%; background: #d1d0d0; padding: 30px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        table { background: #333; color: #fff; }
+        table th, table td { padding: 12px; }
+        header img, footer img { width: 100%; max-height: 180px; object-fit: cover; border-radius: 8px; margin-bottom: 20px; }
+        button { padding: 10px 20px; background: #007bff; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+    </style>
 </head>
 <body>
 <header>
-    <nav>
-        <a href="/">Inicio</a> | <a href="/artistas">Artistas</a> | <a href="/canciones">Canciones</a>
-    </nav>
+    <img src="/static/img/header.jpg" alt="Banner Header">
+    <nav><a href="/">Inicio</a> | <a href="/artistas">Artistas</a> | <a href="/canciones">Canciones</a></nav>
 </header>
-
-<main>
+<main class="content">
     <h1>Canciones Locales</h1>
     <form id="form-cancion">
         <input type="text" name="titulo" placeholder="Título" required>
         <input type="text" name="genero" placeholder="Género" required>
-        <input type="number" name="duracion" placeholder="Duración (min)" required>
+        <input type="number" name="duracion" placeholder="Duración (min)" required step="0.01">
         <input type="text" name="artista" placeholder="Artista" required>
         <label><input type="checkbox" name="explicita"> Explícita</label>
         <button type="submit">Agregar</button>
     </form>
 
-    <table id="tabla-canciones">
-        <thead><tr><th>Título</th><th>Género</th><th>Duración</th><th>Artista</th><th>Explícita</th></tr></thead>
-        <tbody></tbody>
-    </table>
+    <div class="local-query-section">
+        <h2>Consultar Canción por ID</h2>
+        <input type="number" id="consulta-id" placeholder="ID de la canción">
+        <button id="btn-consulta-id">Consultar</button>
+        <div id="resultado-consulta-id"></div>
 
-    <h2>Buscar Canciones en Spotify</h2>
-    <input type="text" id="spotify-query" placeholder="Nombre de la canción">
-    <button id="spotify-search-btn">Buscar Spotify</button>
-    <table id="tabla-spotify-canciones">
-        <thead><tr><th>Título</th><th>Artistas</th><th>Álbum</th></tr></thead>
-        <tbody></tbody>
-    </table>
+        <h2>Consultar Todas las Canciones</h2>
+        <button id="btn-consulta-todos">Mostrar Todas</button>
+        <table id="tabla-todos-canciones"><thead><tr><th>ID</th><th>Título</th><th>Género</th><th>Duración</th><th>Artista</th></tr></thead><tbody></tbody></table>
+    </div>
+
+    <div class="extra-query-section">
+        <h2>Consultar Canciones por Género</h2>
+        <input type="text" id="consulta-genero" placeholder="Género">
+        <button id="btn-consulta-genero">Buscar por Género</button>
+        <table id="tabla-genero-canciones"><thead><tr><th>ID</th><th>Título</th><th>Género</th><th>Duración</th><th>Artista</th></tr></thead><tbody></tbody></table>
+    </div>
+
+    <div class="spotify-section">
+        <h2>Buscar Canciones en Spotify</h2>
+        <input type="text" id="spotify-cancion-query" placeholder="Título de la canción en Spotify">
+        <button id="spotify-cancion-btn">Buscar en Spotify</button>
+        <table id="tabla-spotify-canciones"><thead><tr><th>Nombre</th><th>Artista</th><th>Álbum</th></tr></thead><tbody></tbody></table>
+    </div>
 </main>
+<footer>
+    <img src="/static/img/footer.jpg" alt="Banner Footer">
+    <p>© 2025 Proyecto Integrador</p>
+</footer>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const spotifyBtn = document.getElementById('spotify-cancion-btn');
+    spotifyBtn?.addEventListener('click', async () => {
+        const query = document.getElementById('spotify-cancion-query').value;
+        if (!query.trim()) return alert("Escribe un título de canción");
 
+        const res = await fetch(`/api/spotify/canciones?titulo=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        const tbody = document.querySelector('#tabla-spotify-canciones tbody');
+        tbody.innerHTML = '';
+
+        if (!data.length) return tbody.innerHTML = '<tr><td colspan="3">Sin resultados</td></tr>';
+
+        data.forEach(c => {
+            const row = `<tr><td>${c.nombre}</td><td>${c.artista}</td><td>${c.album}</td></tr>`;
+            tbody.innerHTML += row;
+        });
+    });
+});
+</script>
 <script src="/static/js/canciones.js"></script>
 </body>
 </html>

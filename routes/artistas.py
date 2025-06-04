@@ -1,81 +1,91 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, HTTPException, Depends
 from sqlmodel import select
-from models import Artista
+from models import ArtistaDB
 from utils.connection_db import get_session
-from fastapi import Path
+from fastapi import File, UploadFile, Form
+import shutil
+import os
 
-ruta_artistas = APIRouter(prefix="/artistas", tags=["artistas"])
+UPLOAD_DIR = "static/uploads"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+ruta_artistas = APIRouter(prefix="/api/artistas_db", tags=["Artistas"])
+
+@ruta_artistas.get("/")
+async def obtener_todos(session=Depends(get_session)):
+    result = await session.exec(select(ArtistaDB).where(ArtistaDB.eliminado == False))
+    return result.all()
+
+@ruta_artistas.get("/{id}")
+async def obtener_por_id(id: int, session=Depends(get_session)):
+    artista = await session.get(ArtistaDB, id)
+    if not artista or artista.eliminado:
+        raise HTTPException(status_code=404, detail="Artista no encontrado")
+    return artista
+
+@ruta_artistas.get("/pais/{pais}")
+async def obtener_por_pais(pais: str, session=Depends(get_session)):
+    result = await session.exec(select(ArtistaDB).where(ArtistaDB.pais == pais, ArtistaDB.eliminado == False))
+    return result.all()
 
 @ruta_artistas.post("/")
-async def agregar_artista(artista: Artista, session: AsyncSession = Depends(get_session)):
+async def crear_artista(artista: ArtistaDB, session=Depends(get_session)):
     session.add(artista)
     await session.commit()
     await session.refresh(artista)
     return artista
 
-@ruta_artistas.get("/")
-async def obtener_artistas(session: AsyncSession = Depends(get_session)):
-    result = await session.execute(select(Artista).where(Artista.eliminado == False))
-    return result.scalars().all()
-
-@ruta_artistas.delete("/{artista_id}")
-async def eliminar_artista(artista_id: int, session: AsyncSession = Depends(get_session)):
-    artista = await session.get(Artista, artista_id)
-    if not artista:
+@ruta_artistas.put("/{id}")
+async def actualizar_total(id: int, artista: ArtistaDB, session=Depends(get_session)):
+    db_item = await session.get(ArtistaDB, id)
+    if not db_item:
         raise HTTPException(status_code=404, detail="Artista no encontrado")
-    artista.eliminado = True
+    for key, value in artista.dict().items():
+        setattr(db_item, key, value)
+    await session.commit()
+    return db_item
+
+@ruta_artistas.patch("/{id}")
+async def actualizar_parcial(id: int, updates: dict, session=Depends(get_session)):
+    db_item = await session.get(ArtistaDB, id)
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Artista no encontrado")
+    for key, value in updates.items():
+        setattr(db_item, key, value)
+    await session.commit()
+    return db_item
+
+@ruta_artistas.delete("/{id}")
+async def eliminar_logico(id: int, session=Depends(get_session)):
+    db_item = await session.get(ArtistaDB, id)
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Artista no encontrado")
+    db_item.eliminado = True
+    await session.commit()
+    return {"mensaje": "Artista marcado como eliminado"}
+
+@ruta_artistas.post("/con-imagen")
+async def crear_artista_con_imagen(
+    nombre: str = Form(...),
+    pais: str = Form(...),
+    genero_principal: str = Form(...),
+    activo: bool = Form(...),
+    imagen: UploadFile = File(...),
+    session=Depends(get_session)
+):
+    file_location = f"{UPLOAD_DIR}/{imagen.filename}"
+    with open(file_location, "wb") as f:
+        shutil.copyfileobj(imagen.file, f)
+
+    artista = ArtistaDB(
+        nombre=nombre,
+        pais=pais,
+        genero_principal=genero_principal,
+        activo=activo,
+        eliminado=False,
+        imagen_url=file_location
+    )
     session.add(artista)
     await session.commit()
-    return {"mensaje": "Artista eliminado (marcado como eliminado)"}
-@ruta_artistas.patch("/{artista_id}")
-async def modificar_parcial_artista(artista_id: int, datos: dict, session: AsyncSession = Depends(get_session)):
-    artista = await session.get(Artista, artista_id)
-    if not artista:
-        raise HTTPException(status_code=404, detail="Artista no encontrado")
-    for key, value in datos.items():
-        if hasattr(artista, key):
-            setattr(artista, key, value)
-    session.add(artista)
-    await session.commit()
-    return {"mensaje": "Artista modificado parcialmente"}
-
-@ruta_artistas.get("/buscar/nombre/{nombre}")
-async def buscar_artista_por_nombre(nombre: str, session: AsyncSession = Depends(get_session)):
-    result = await session.execute(select(Artista).where(Artista.nombre.ilike(f"%{nombre}%")))
-    return result.scalars().all()
-
-@ruta_artistas.get("/historial")
-async def obtener_todos_artistas(session: AsyncSession = Depends(get_session)):
-    result = await session.execute(select(Artista))
-    return result.scalars().all()
-@ruta_artistas.put("/{artista_id}")
-async def modificar_total_artista(artista_id: int, artista_data: Artista, session: AsyncSession = Depends(get_session)):
-    artista = await session.get(Artista, artista_id)
-    if not artista:
-        raise HTTPException(status_code=404, detail="Artista no encontrado")
-    artista.nombre = artista_data.nombre
-    artista.pais = artista_data.pais
-    artista.genero_principal = artista_data.genero_principal
-    artista.activo = artista_data.activo
-    artista.eliminado = artista_data.eliminado
-    artista.imagen = artista_data.imagen
-    session.add(artista)
-    await session.commit()
-    return {"mensaje": "Artista modificado completamente"}
-
-@ruta_artistas.get("/filtro/pais/{pais}")
-async def filtrar_artistas_por_pais(pais: str, session: AsyncSession = Depends(get_session)):
-    result = await session.execute(select(Artista).where(Artista.pais.ilike(f"%{pais}%")))
-    return result.scalars().all()
-
-@ruta_artistas.get("/estadisticas")
-async def estadisticas_artistas(session: AsyncSession = Depends(get_session)):
-    total = await session.execute(select(Artista))
-    activos = await session.execute(select(Artista).where(Artista.activo == True))
-    eliminados = await session.execute(select(Artista).where(Artista.eliminado == True))
-    return {
-        "total_artistas": len(total.scalars().all()),
-        "activos": len(activos.scalars().all()),
-        "eliminados": len(eliminados.scalars().all())
-    }
+    await session.refresh(artista)
+    return artista

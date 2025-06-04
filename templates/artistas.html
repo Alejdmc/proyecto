@@ -3,39 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <title>Artistas</title>
+    <link rel="stylesheet" href="/static/css/ie6.css">
+    <link rel="stylesheet" href="/static/css/layout.css">
     <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Press Start 2P', cursive; }
+        main.content { margin-top: 120px; padding: 60px; }
+        table, form, .spotify-section, .local-query-section { margin: 30px auto; width: 85%; background: #d1d0d0; padding: 30px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        table { background: #333; color: #fff; }
+        table th, table td { padding: 12px; }
+        header img, footer img { width: 100%; max-height: 180px; object-fit: cover; border-radius: 8px; margin-bottom: 20px; }
+        button { padding: 10px 20px; background: #007bff; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+    </style>
 </head>
 <body>
 <header>
-    <nav>
-        <a href="/">Inicio</a> | <a href="/artistas">Artistas</a> | <a href="/canciones">Canciones</a>
-    </nav>
+    <img src="/static/img/header.jpg" alt="Banner Header">
+    <nav><a href="/">Inicio</a> | <a href="/artistas">Artistas</a> | <a href="/canciones">Canciones</a></nav>
 </header>
-
-<main>
+<main class="content">
     <h1>Artistas Locales</h1>
     <form id="form-artista">
         <input type="text" name="nombre" placeholder="Nombre" required>
         <input type="text" name="pais" placeholder="País" required>
-        <input type="text" name="genero_principal" placeholder="Género Principal" required>
+        <input type="text" name="genero_principal" placeholder="Género" required>
         <label><input type="checkbox" name="activo"> Activo</label>
         <button type="submit">Agregar</button>
     </form>
+    <div class="local-query-section">
+        <h2>Consultar Artista por ID</h2>
+        <input type="number" id="consulta-id" placeholder="ID del artista">
+        <button id="btn-consulta-id">Consultar</button>
+        <div id="resultado-consulta-id"></div>
 
-    <table id="tabla-artistas">
-        <thead><tr><th>Nombre</th><th>País</th><th>Género</th><th>Activo</th></tr></thead>
-        <tbody></tbody>
-    </table>
+        <h2>Consultar Todos los Artistas</h2>
+        <button id="btn-consulta-todos">Mostrar Todos</button>
+        <table id="tabla-todos-artistas"><thead><tr><th>ID</th><th>Nombre</th><th>País</th><th>Género</th></tr></thead><tbody></tbody></table>
+    </div>
+    <div class="spotify-section">
+        <h2>Buscar Artistas en Spotify</h2>
+        <input type="text" id="spotify-query" placeholder="Nombre del artista en Spotify">
+        <button id="spotify-search-btn">Buscar en Spotify</button>
+        <table id="tabla-spotify-artistas"><thead><tr><th>Nombre</th><th>Géneros</th><th>Popularidad</th></tr></thead><tbody></tbody></table>
+    </div>
+    <div class="local-query-section">
+    <h2>Consultar Artistas por País</h2>
+    <input type="text" id="consulta-pais" placeholder="País">
+    <button id="btn-consulta-pais">Buscar por País</button>
+    <table id="tabla-pais-artistas"><thead><tr><th>ID</th><th>Nombre</th><th>País</th><th>Género</th></tr></thead><tbody></tbody></table>
 
-    <h2>Buscar Artistas en Spotify</h2>
-    <input type="text" id="spotify-query" placeholder="Nombre del artista">
-    <button id="spotify-search-btn">Buscar Spotify</button>
-    <table id="tabla-spotify-artistas">
-        <thead><tr><th>Nombre</th><th>Géneros</th><th>Popularidad</th></tr></thead>
-        <tbody></tbody>
-    </table>
+    <h2>Actualizar Artista (PUT)</h2>
+    <input type="number" id="put-id" placeholder="ID">
+    <input type="text" id="put-nombre" placeholder="Nombre">
+    <input type="text" id="put-pais" placeholder="País">
+    <input type="text" id="put-genero" placeholder="Género">
+    <button id="btn-put-actualizar">Actualizar Total</button>
+
+    <h2>Actualizar Parcial Artista (PATCH)</h2>
+    <input type="number" id="patch-id" placeholder="ID">
+    <input type="text" id="patch-campo" placeholder="Campo">
+    <input type="text" id="patch-valor" placeholder="Nuevo Valor">
+    <button id="btn-patch-actualizar">Actualizar Parcial</button>
+
+    <h2>Eliminar Artista</h2>
+    <input type="number" id="delete-id" placeholder="ID">
+    <button id="btn-eliminar">Eliminar (Marcar)</button>
+</div>
 </main>
-
+<footer>
+    <img src="/static/img/footer.jpg" alt="Banner Footer">
+    <p>© 2025 Proyecto Integrador</p>
+</footer>
 <script src="/static/js/artistas.js"></script>
 </body>
 </html>

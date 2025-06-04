@@ -2,43 +2,31 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Proyecto Integrador - Inicio</title>
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <title>Inicio</title>
     <link rel="stylesheet" href="/static/css/ie6.css">
     <link rel="stylesheet" href="/static/css/layout.css">
-    <link rel="stylesheet" href="/static/css/resent.css">
     <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Press Start 2P', cursive; }
-        main.content { margin-top: 80px; padding: 40px; text-align: center; }
+        main.content { margin-top: 120px; padding: 60px; text-align: center; }
         .card-section { display: flex; flex-wrap: wrap; justify-content: center; gap: 40px; margin-top: 60px; }
-        .home-card { width: 250px; padding: 20px; background-color: #ffffffcc; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); text-align: center; }
+        .home-card { width: 250px; padding: 20px; background-color: #ffffffcc; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); text-align: center; }
         .home-card img { width: 80px; height: 80px; object-fit: cover; margin-bottom: 10px; }
         .home-card h3 { margin-bottom: 10px; }
         .home-card a.btn { display: inline-block; margin-top: 10px; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 4px; }
         .home-card a.btn:hover { background-color: #0056b3; }
-        header img, footer img { max-width: 100%; height: auto; display: block; margin: 0 auto 20px auto; border-radius: 8px; }
-        footer { margin-top: 60px; text-align: center; }
+        header img, footer img { width: 100%; max-height: 180px; object-fit: cover; border-radius: 8px; margin-bottom: 20px; }
     </style>
 </head>
 <body>
 <header>
     <img src="/static/img/header.jpg" alt="Banner Header">
-    <nav class="main-nav">
-        <ul>
-            <li><a href="/" class="active">Inicio</a></li>
-            <li><a href="/artistas">Artistas</a></li>
-            <li><a href="/canciones">Canciones</a></li>
-            <li><a href="/info">Información</a></li>
-        </ul>
-    </nav>
+    <nav><a href="/">Inicio</a> | <a href="/artistas">Artistas</a> | <a href="/canciones">Canciones</a></nav>
 </header>
-
 <main class="content">
     <h1>Bienvenido al Proyecto Integrador</h1>
     <p>Gestiona artistas y canciones con una interfaz moderna y sencilla.</p>
-
     <div class="card-section">
         <div class="home-card">
             <img src="/static/img/artistas.png" alt="Icono Artistas">
@@ -60,11 +48,9 @@
         </div>
     </div>
 </main>
-
 <footer>
     <img src="/static/img/footer.jpg" alt="Banner Footer">
-    <p>© 2025 Proyecto Integrador - Desarrollo de Software</p>
+    <p>© 2025 Proyecto Integrador</p>
 </footer>
-
 </body>
 </html>

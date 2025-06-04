@@ -1,80 +1,94 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, HTTPException, Depends
 from sqlmodel import select
-from models import Cancion
+from models import CancionDB
 from utils.connection_db import get_session
+from fastapi import File, UploadFile, Form
+import shutil
+import os
 
-ruta_canciones = APIRouter(prefix="/canciones", tags=["canciones"])
+
+UPLOAD_DIR = "static/uploads"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+ruta_canciones = APIRouter(prefix="/api/canciones_db", tags=["Canciones"])
+
+@ruta_canciones.get("/")
+async def obtener_todos(session=Depends(get_session)):
+    result = await session.exec(select(CancionDB).where(CancionDB.eliminado == False))
+    return result.all()
+
+@ruta_canciones.get("/{id}")
+async def obtener_por_id(id: int, session=Depends(get_session)):
+    cancion = await session.get(CancionDB, id)
+    if not cancion or cancion.eliminado:
+        raise HTTPException(status_code=404, detail="Canción no encontrada")
+    return cancion
+
+@ruta_canciones.get("/genero/{genero}")
+async def obtener_por_genero(genero: str, session=Depends(get_session)):
+    result = await session.exec(select(CancionDB).where(CancionDB.genero == genero, CancionDB.eliminado == False))
+    return result.all()
 
 @ruta_canciones.post("/")
-async def agregar_cancion(cancion: Cancion, session: AsyncSession = Depends(get_session)):
+async def crear_cancion(cancion: CancionDB, session=Depends(get_session)):
     session.add(cancion)
     await session.commit()
     await session.refresh(cancion)
     return cancion
 
-@ruta_canciones.get("/")
-async def obtener_canciones(session: AsyncSession = Depends(get_session)):
-    result = await session.execute(select(Cancion).where(Cancion.eliminado == False))
-    return result.scalars().all()
-
-@ruta_canciones.delete("/{cancion_id}")
-async def eliminar_cancion(cancion_id: int, session: AsyncSession = Depends(get_session)):
-    cancion = await session.get(Cancion, cancion_id)
-    if not cancion:
+@ruta_canciones.put("/{id}")
+async def actualizar_total(id: int, cancion: CancionDB, session=Depends(get_session)):
+    db_item = await session.get(CancionDB, id)
+    if not db_item:
         raise HTTPException(status_code=404, detail="Canción no encontrada")
-    cancion.eliminado = True
+    for key, value in cancion.dict().items():
+        setattr(db_item, key, value)
+    await session.commit()
+    return db_item
+
+@ruta_canciones.patch("/{id}")
+async def actualizar_parcial(id: int, updates: dict, session=Depends(get_session)):
+    db_item = await session.get(CancionDB, id)
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Canción no encontrada")
+    for key, value in updates.items():
+        setattr(db_item, key, value)
+    await session.commit()
+    return db_item
+
+@ruta_canciones.delete("/{id}")
+async def eliminar_logico(id: int, session=Depends(get_session)):
+    db_item = await session.get(CancionDB, id)
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Canción no encontrada")
+    db_item.eliminado = True
+    await session.commit()
+    return {"mensaje": "Canción marcada como eliminada"}
+
+@ruta_canciones.post("/con-imagen")
+async def crear_cancion_con_imagen(
+    titulo: str = Form(...),
+    genero: str = Form(...),
+    duracion: float = Form(...),
+    artista: str = Form(...),
+    explicita: bool = Form(...),
+    imagen: UploadFile = File(...),
+    session=Depends(get_session)
+):
+    file_location = f"{UPLOAD_DIR}/{imagen.filename}"
+    with open(file_location, "wb") as f:
+        shutil.copyfileobj(imagen.file, f)
+
+    cancion = CancionDB(
+        titulo=titulo,
+        genero=genero,
+        duracion=duracion,
+        artista=artista,
+        explicita=explicita,
+        eliminado=False,
+        imagen_url=file_location
+    )
     session.add(cancion)
     await session.commit()
-    return {"mensaje": "Canción eliminada (marcada como eliminada)"}
-@ruta_canciones.patch("/{cancion_id}")
-async def modificar_parcial_cancion(cancion_id: int, datos: dict, session: AsyncSession = Depends(get_session)):
-    cancion = await session.get(Cancion, cancion_id)
-    if not cancion:
-        raise HTTPException(status_code=404, detail="Canción no encontrada")
-    for key, value in datos.items():
-        if hasattr(cancion, key):
-            setattr(cancion, key, value)
-    session.add(cancion)
-    await session.commit()
-    return {"mensaje": "Canción modificada parcialmente"}
+    await session.refresh(cancion)
+    return cancion
 
-@ruta_canciones.get("/buscar/titulo/{titulo}")
-async def buscar_cancion_por_titulo(titulo: str, session: AsyncSession = Depends(get_session)):
-    result = await session.execute(select(Cancion).where(Cancion.titulo.ilike(f"%{titulo}%")))
-    return result.scalars().all()
-
-@ruta_canciones.get("/historial")
-async def obtener_todas_canciones(session: AsyncSession = Depends(get_session)):
-    result = await session.execute(select(Cancion))
-    return result.scalars().all()
-@ruta_canciones.put("/{cancion_id}")
-async def modificar_total_cancion(cancion_id: int, cancion_data: Cancion, session: AsyncSession = Depends(get_session)):
-    cancion = await session.get(Cancion, cancion_id)
-    if not cancion:
-        raise HTTPException(status_code=404, detail="Canción no encontrada")
-    cancion.titulo = cancion_data.titulo
-    cancion.genero = cancion_data.genero
-    cancion.duracion = cancion_data.duracion
-    cancion.artista_id = cancion_data.artista_id
-    cancion.explicita = cancion_data.explicita
-    cancion.eliminado = cancion_data.eliminado
-    session.add(cancion)
-    await session.commit()
-    return {"mensaje": "Canción modificada completamente"}
-
-@ruta_canciones.get("/filtro/genero/{genero}")
-async def filtrar_canciones_por_genero(genero: str, session: AsyncSession = Depends(get_session)):
-    result = await session.execute(select(Cancion).where(Cancion.genero.ilike(f"%{genero}%")))
-    return result.scalars().all()
-
-@ruta_canciones.get("/estadisticas")
-async def estadisticas_canciones(session: AsyncSession = Depends(get_session)):
-    total = await session.execute(select(Cancion))
-    explicitas = await session.execute(select(Cancion).where(Cancion.explicita == True))
-    eliminadas = await session.execute(select(Cancion).where(Cancion.eliminado == True))
-    return {
-        "total_canciones": len(total.scalars().all()),
-        "explicitas": len(explicitas.scalars().all()),
-        "eliminadas": len(eliminadas.scalars().all())
-    }
