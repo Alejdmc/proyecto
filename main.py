@@ -26,6 +26,7 @@ templates = Jinja2Templates(directory="templates")
 app.include_router(ruta_artistas)
 app.include_router(ruta_canciones)
 
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -166,3 +167,20 @@ async def eliminar_cancion(cancion_id: int, session: AsyncSession = Depends(get_
     await session.delete(cancion)
     await session.commit()
     return {"mensaje": "Canción eliminada"}
+@app.put("/api/canciones_db/{cancion_id}")
+async def actualizar_cancion(cancion_id: int, nueva: CancionDB, session: AsyncSession = Depends(get_session)):
+    cancion = await session.get(CancionDB, cancion_id)
+    if not cancion:
+        raise HTTPException(status_code=404, detail="Canción no encontrada")
+
+    cancion.titulo = nueva.titulo
+    cancion.genero = nueva.genero
+    cancion.duracion = nueva.duracion
+    cancion.artista = nueva.artista
+    cancion.explicita = nueva.explicita
+    cancion.eliminado = nueva.eliminado
+    cancion.imagen_url = nueva.imagen_url  # si usas este campo también
+
+    await session.commit()
+    await session.refresh(cancion)
+    return cancion

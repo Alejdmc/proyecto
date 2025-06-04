@@ -10,7 +10,7 @@
     <style>
         body { font-family: 'Press Start 2P', cursive; }
         main.content { margin-top: 120px; padding: 60px; }
-        table, form, .spotify-section, .local-query-section, .extra-query-section { margin: 30px auto; width: 85%; background: #d1d0d0; padding: 30px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        table, form, .spotify-section, .local-query-section, .extra-query-section, .update-section { margin: 30px auto; width: 85%; background: #d1d0d0; padding: 30px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
         table { background: #333; color: #fff; }
         table th, table td { padding: 12px; }
         header img, footer img { width: 100%; max-height: 180px; object-fit: cover; border-radius: 8px; margin-bottom: 20px; }
@@ -52,6 +52,26 @@
         <table id="tabla-genero-canciones"><thead><tr><th>ID</th><th>Título</th><th>Género</th><th>Duración</th><th>Artista</th></tr></thead><tbody></tbody></table>
     </div>
 
+    <div class="update-section">
+        <h2>Actualizar Canción (PUT)</h2>
+        <input type="number" id="put-id" placeholder="ID de la canción">
+        <input type="text" id="put-titulo" placeholder="Nuevo título">
+        <input type="text" id="put-genero" placeholder="Nuevo género">
+        <input type="number" id="put-duracion" placeholder="Nueva duración">
+        <input type="text" id="put-artista" placeholder="Nuevo artista">
+        <button id="btn-put-actualizar">Actualizar Totalmente</button>
+
+        <h2>Actualizar Canción (PATCH)</h2>
+        <input type="number" id="patch-id" placeholder="ID de la canción">
+        <input type="text" id="patch-campo" placeholder="Campo a modificar (titulo, genero, duracion, artista)">
+        <input type="text" id="patch-valor" placeholder="Nuevo valor">
+        <button id="btn-patch-actualizar">Actualizar Parcialmente</button>
+
+        <h2>Eliminar Canción</h2>
+        <input type="number" id="delete-id" placeholder="ID de la canción">
+        <button id="btn-eliminar">Eliminar Canción</button>
+    </div>
+
     <div class="spotify-section">
         <h2>Buscar Canciones en Spotify</h2>
         <input type="text" id="spotify-cancion-query" placeholder="Título de la canción en Spotify">
@@ -81,6 +101,41 @@ document.addEventListener('DOMContentLoaded', () => {
             const row = `<tr><td>${c.nombre}</td><td>${c.artista}</td><td>${c.album}</td></tr>`;
             tbody.innerHTML += row;
         });
+    });
+
+    document.getElementById('btn-put-actualizar').addEventListener('click', async () => {
+        const id = document.getElementById('put-id').value;
+        const data = {
+            titulo: document.getElementById('put-titulo').value,
+            genero: document.getElementById('put-genero').value,
+            duracion: parseFloat(document.getElementById('put-duracion').value),
+            artista: document.getElementById('put-artista').value
+        };
+        await fetch(`/api/canciones_db/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        alert('Canción actualizada completamente');
+    });
+
+    document.getElementById('btn-patch-actualizar').addEventListener('click', async () => {
+        const id = document.getElementById('patch-id').value;
+        const campo = document.getElementById('patch-campo').value;
+        const valor = document.getElementById('patch-valor').value;
+        const data = { [campo]: valor };
+        await fetch(`/api/canciones_db/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        alert('Canción actualizada parcialmente');
+    });
+
+    document.getElementById('btn-eliminar').addEventListener('click', async () => {
+        const id = document.getElementById('delete-id').value;
+        await fetch(`/api/canciones_db/${id}`, { method: 'DELETE' });
+        alert('Canción eliminada');
     });
 });
 </script>

@@ -43,7 +43,43 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+document.getElementById('btn-put-actualizar').addEventListener('click', async () => {
+    const id = document.getElementById('put-id').value;
+    const titulo = document.getElementById('put-titulo').value;
+    const genero = document.getElementById('put-genero').value;
+    const duracion = document.getElementById('put-duracion').value;
+    const artista = document.getElementById('put-artista').value;
 
+    if (!id || !titulo || !genero || !duracion || !artista) {
+        alert("Todos los campos son obligatorios");
+        return;
+    }
+
+    const data = {
+        titulo: titulo,
+        genero: genero,
+        duracion: parseFloat(duracion),
+        artista: artista
+    };
+
+    try {
+        const res = await fetch(`/api/canciones_db/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (!res.ok) {
+            const error = await res.json();
+            alert(`Error: ${error.detail}`);
+        } else {
+            alert('Canción actualizada completamente');
+        }
+    } catch (error) {
+        console.error("Error en PUT:", error);
+        alert("Ocurrió un error al actualizar");
+    }
+});
     if (btnConsultaTodos) {
         btnConsultaTodos.addEventListener('click', async () => {
             try {

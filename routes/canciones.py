@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 from models import CancionDB
 from utils.connection_db import get_session
@@ -35,15 +36,23 @@ async def crear_cancion(cancion: CancionDB, session=Depends(get_session)):
     await session.refresh(cancion)
     return cancion
 
-@ruta_canciones.put("/{id}")
-async def actualizar_total(id: int, cancion: CancionDB, session=Depends(get_session)):
-    db_item = await session.get(CancionDB, id)
-    if not db_item:
+@ruta_canciones.put("/api/canciones_db/{cancion_id}")
+async def actualizar_cancion(cancion_id: int, nueva: CancionDB, session: AsyncSession = Depends(get_session)):
+    cancion = await session.get(CancionDB, cancion_id)
+    if not cancion:
         raise HTTPException(status_code=404, detail="Canción no encontrada")
-    for key, value in cancion.dict().items():
-        setattr(db_item, key, value)
+
+    cancion.titulo = nueva.titulo
+    cancion.genero = nueva.genero
+    cancion.duracion = nueva.duracion
+    cancion.artista = nueva.artista
+    cancion.explicita = nueva.explicita
+    cancion.eliminado = nueva.eliminado
+    cancion.imagen_url = nueva.imagen_url  # si usas este campo también
+
     await session.commit()
-    return db_item
+    await session.refresh(cancion)
+    return cancion
 
 @ruta_canciones.patch("/{id}")
 async def actualizar_parcial(id: int, updates: dict, session=Depends(get_session)):
@@ -86,6 +95,7 @@ async def crear_cancion_con_imagen(
         explicita=explicita,
         eliminado=False,
         imagen_url=file_location
+
     )
     session.add(cancion)
     await session.commit()
