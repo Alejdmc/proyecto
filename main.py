@@ -13,16 +13,17 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 import httpx
 import base64
-
 from utils.connection_db import init_db, get_session
 from routes.artistas import ruta_artistas
 from routes.canciones import ruta_canciones
+from routes.info import ruta_info
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 app.include_router(ruta_artistas)
 app.include_router(ruta_canciones)
+app.include_router(ruta_info)
 
 app.add_middleware(
     CORSMiddleware,
@@ -31,6 +32,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.on_event("startup")
 async def on_startup():
