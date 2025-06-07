@@ -19,7 +19,7 @@ async def obtener_artistas(
     solo_activos: bool = Query(False, description="Mostrar solo los no eliminados"),
     session: AsyncSession = Depends(get_session)
 ):
-    # Si solo_activos es True, filtra por eliminado==False, si no, muestra todos
+
     if solo_activos:
         query = select(ArtistaDB).where(ArtistaDB.eliminado == False)
     else:

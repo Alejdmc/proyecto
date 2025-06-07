@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- AGREGAR ARTISTA ---
     document.getElementById('form-artista').addEventListener('submit', async (e) => {
         e.preventDefault();
         const form = e.target;
@@ -18,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({
                     nombre,
                     pais,
-                    genero_principal,  // CORRECTO: coincidir con tu modelo y base de datos
+                    genero_principal,
                     activo,
                     eliminado: !activo
                 })
@@ -31,7 +30,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- CONSULTAR POR ID ---
     document.getElementById('btn-consulta-id').addEventListener('click', async () => {
         const id = document.getElementById('consulta-id').value.trim();
         const div = document.getElementById('resultado-consulta-id');
@@ -53,7 +51,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- BUSCAR POR PAÍS ---
     document.getElementById('btn-buscar-pais').addEventListener('click', async () => {
         const pais = document.getElementById('buscar-pais').value.trim();
         const resultadoDiv = document.getElementById('resultado-busqueda-pais');
@@ -75,7 +72,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- CONSULTAR TODOS ---
     document.getElementById('btn-consulta-todos').addEventListener('click', async () => {
         await cargarArtistas();
     });
@@ -101,7 +97,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- ACTUALIZAR (PUT) ---
     document.getElementById('btn-put-actualizar').addEventListener('click', async () => {
         const id = document.getElementById('put-id').value.trim();
         const nombre = document.getElementById('put-nombre').value.trim();
@@ -119,7 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     id: Number(id),
                     nombre,
                     pais,
-                    genero_principal  // CORRECTO
+                    genero_principal
                 })
             });
             if (!res.ok) throw new Error(await res.text());
@@ -129,7 +124,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- ACTUALIZAR (PATCH) ---
     document.getElementById('btn-patch-actualizar').addEventListener('click', async () => {
         const id = document.getElementById('patch-id').value.trim();
         const campo = document.getElementById('patch-campo').value.trim();
@@ -151,7 +145,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- ELIMINAR (LÓGICO) ---
     document.getElementById('btn-eliminar').addEventListener('click', async () => {
         const id = document.getElementById('delete-id').value.trim();
         if (!id) {
@@ -168,7 +161,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- SPOTIFY ---
     document.getElementById('spotify-search-btn').addEventListener('click', buscarSpotify);
     document.getElementById('spotify-query').addEventListener('keyup', function(e) {
         if (e.key === "Enter") buscarSpotify();
@@ -205,6 +197,5 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Inicializar tabla al cargar
     cargarArtistas();
 });

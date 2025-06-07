@@ -116,7 +116,6 @@ async def buscar_canciones_spotify(titulo: str):
         for c in items
     ]
 
-# Si tienes otra función para búsqueda avanzada:
 @app.get("/api/spotify/canciones/advanced")
 async def spotify_canciones(q: str):
     data = await spotify_search(q, "track")
