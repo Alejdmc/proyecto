@@ -7,14 +7,13 @@ from fastapi import File, UploadFile, Form
 import shutil
 import os
 
-
 UPLOAD_DIR = "static/uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 ruta_canciones = APIRouter(prefix="/api/canciones_db", tags=["Canciones"])
 
 @ruta_canciones.get("/")
 async def obtener_todos(session=Depends(get_session)):
-    result = await session.exec(select(CancionDB).where(CancionDB.eliminado == False))
+    result = await session.exec(select(CancionDB))  # <--- ¡Sin filtro!
     return result.all()
 
 @ruta_canciones.get("/{id}")
@@ -36,7 +35,7 @@ async def crear_cancion(cancion: CancionDB, session=Depends(get_session)):
     await session.refresh(cancion)
     return cancion
 
-@ruta_canciones.put("/api/canciones_db/{cancion_id}")
+@ruta_canciones.put("/{cancion_id}")
 async def actualizar_cancion(cancion_id: int, nueva: CancionDB, session: AsyncSession = Depends(get_session)):
     cancion = await session.get(CancionDB, cancion_id)
     if not cancion:
@@ -48,7 +47,7 @@ async def actualizar_cancion(cancion_id: int, nueva: CancionDB, session: AsyncSe
     cancion.artista = nueva.artista
     cancion.explicita = nueva.explicita
     cancion.eliminado = nueva.eliminado
-    cancion.imagen_url = nueva.imagen_url  # si usas este campo también
+    cancion.imagen_url = nueva.imagen_url
 
     await session.commit()
     await session.refresh(cancion)
@@ -95,10 +94,8 @@ async def crear_cancion_con_imagen(
         explicita=explicita,
         eliminado=False,
         imagen_url=file_location
-
     )
     session.add(cancion)
     await session.commit()
     await session.refresh(cancion)
     return cancion
-
