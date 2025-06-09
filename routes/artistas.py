@@ -1,77 +1,109 @@
-from fastapi import APIRouter, HTTPException, Depends, Query
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Form, File, UploadFile, Depends, HTTPException
+from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.future import select
 from models import ArtistaDB
 from utils.connection_db import get_session
+import os
 
-ruta_artistas = APIRouter(prefix="/api/artistas_db", tags=["artistas"])
+router = APIRouter(prefix="/api/artistas_db", tags=["artistas"])
 
-@ruta_artistas.post("/")
-async def crear_artista(artista: ArtistaDB, session: AsyncSession = Depends(get_session)):
+UPLOAD_DIR = "static/uploads"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+@router.post("/")
+async def crear_artista(
+    nombre: str = Form(...),
+    pais: str = Form(...),
+    genero_principal: str = Form(...),
+    activo: str = Form("true"),
+    imagen: UploadFile = File(None),
+    session: AsyncSession = Depends(get_session)
+):
+    # Convierte string a boolean real
+    activo_bool = activo.lower() == "true"
+    imagen_url = None
+    if imagen and imagen.filename:
+        filepath = os.path.join(UPLOAD_DIR, imagen.filename)
+        # Si quieres evitar sobrescribir archivos, puedes agregar un sufijo único aquí
+        with open(filepath, "wb") as buffer:
+            buffer.write(await imagen.read())
+        imagen_url = f"/static/uploads/{imagen.filename}"
+
+    artista = ArtistaDB(
+        nombre=nombre,
+        pais=pais,
+        genero_principal=genero_principal,
+        activo=activo_bool,
+        imagen_url=imagen_url
+    )
     session.add(artista)
     await session.commit()
     await session.refresh(artista)
     return artista
 
-@ruta_artistas.get("/")
-async def obtener_artistas(
-    pais: str = Query(None, description="Filtrar por país"),
-    solo_activos: bool = Query(False, description="Mostrar solo los no eliminados"),
-    session: AsyncSession = Depends(get_session)
-):
-
-    if solo_activos:
-        query = select(ArtistaDB).where(ArtistaDB.eliminado == False)
-    else:
-        query = select(ArtistaDB)
-    result = await session.execute(query)
-    artistas = result.scalars().all()
+@router.get("/")
+async def get_artistas(pais: str = None, session: AsyncSession = Depends(get_session)):
+    query = select(ArtistaDB).where(ArtistaDB.eliminado == False)
     if pais:
-        pais = pais.strip().lower()
-        artistas = [
-            artista for artista in artistas
-            if artista.pais and artista.pais.strip().lower() == pais
-        ]
-    return artistas
+        query = query.where(ArtistaDB.pais == pais)
+    result = await session.execute(query)
+    return result.scalars().all()
 
-@ruta_artistas.get("/{id}")
-async def obtener_artista(id: int, session: AsyncSession = Depends(get_session)):
-    artista = await session.get(ArtistaDB, id)
-    if not artista:
+@router.get("/{artista_id}")
+async def get_artista(artista_id: int, session: AsyncSession = Depends(get_session)):
+    artista = await session.get(ArtistaDB, artista_id)
+    if not artista or artista.eliminado:
         raise HTTPException(status_code=404, detail="Artista no encontrado")
     return artista
 
-@ruta_artistas.put("/{id}")
-async def actualizar_total(id: int, artista: ArtistaDB, session: AsyncSession = Depends(get_session)):
-    db_item = await session.get(ArtistaDB, id)
-    if not db_item:
+@router.put("/{artista_id}")
+async def put_artista(
+    artista_id: int,
+    nombre: str = Form(...),
+    pais: str = Form(...),
+    genero_principal: str = Form(...),
+    activo: str = Form("true"),
+    imagen: UploadFile = File(None),
+    session: AsyncSession = Depends(get_session)
+):
+    artista = await session.get(ArtistaDB, artista_id)
+    if not artista or artista.eliminado:
         raise HTTPException(status_code=404, detail="Artista no encontrado")
-    artista_data = artista.dict(exclude_unset=True)
-    for key, value in artista_data.items():
-        if key != "id":
-            setattr(db_item, key, value)
+    artista.nombre = nombre
+    artista.pais = pais
+    artista.genero_principal = genero_principal
+    artista.activo = activo.lower() == "true"
+    if imagen and imagen.filename:
+        filepath = os.path.join(UPLOAD_DIR, imagen.filename)
+        with open(filepath, "wb") as buffer:
+            buffer.write(await imagen.read())
+        artista.imagen_url = f"/static/uploads/{imagen.filename}"
     await session.commit()
-    await session.refresh(db_item)
-    return db_item
+    await session.refresh(artista)
+    return artista
 
-@ruta_artistas.patch("/{id}")
-async def actualizar_parcial(id: int, updates: dict, session: AsyncSession = Depends(get_session)):
-    db_item = await session.get(ArtistaDB, id)
-    if not db_item:
+@router.patch("/{artista_id}")
+async def patch_artista(
+    artista_id: int,
+    data: dict = None,
+    session: AsyncSession = Depends(get_session)
+):
+    artista = await session.get(ArtistaDB, artista_id)
+    if not artista or artista.eliminado:
         raise HTTPException(status_code=404, detail="Artista no encontrado")
-    for key, value in updates.items():
-        if key != "id":
-            setattr(db_item, key, value)
+    if data:
+        for key, value in data.items():
+            if hasattr(artista, key) and key != "id":
+                setattr(artista, key, value)
     await session.commit()
-    await session.refresh(db_item)
-    return db_item
+    await session.refresh(artista)
+    return artista
 
-@ruta_artistas.delete("/{id}")
-async def eliminar_logico(id: int, session: AsyncSession = Depends(get_session)):
-    db_item = await session.get(ArtistaDB, id)
-    if not db_item:
+@router.delete("/{artista_id}")
+async def delete_artista(artista_id: int, session: AsyncSession = Depends(get_session)):
+    artista = await session.get(ArtistaDB, artista_id)
+    if not artista or artista.eliminado:
         raise HTTPException(status_code=404, detail="Artista no encontrado")
-    db_item.eliminado = True
+    artista.eliminado = True
     await session.commit()
-    await session.refresh(db_item)
-    return {"mensaje": "Artista marcado como eliminado"}
+    return {"ok": True}

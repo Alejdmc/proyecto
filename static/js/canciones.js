@@ -1,120 +1,131 @@
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('form-cancion');
-    const btnConsultaId = document.getElementById('btn-consulta-id');
     const btnConsultaTodos = document.getElementById('btn-consulta-todos');
     const spotifyBtn = document.getElementById('spotify-cancion-btn');
 
     if (form) {
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const data = {
-                titulo: form.titulo.value,
-                genero: form.genero.value,
-                duracion: parseFloat(form.duracion.value),
-                artista: form.artista.value,
-                explicita: form.explicita.checked,
-                eliminado: false
-            };
+            const formData = new FormData(form);
+            // Asegura que el campo explicita se mande como string "true" o "false"
+            formData.delete('explicita');
+            formData.append('explicita', form.querySelector('[name="explicita"]').checked ? "true" : "false");
             try {
-                const res = await fetch('/api/canciones_db', {
+                const res = await fetch('/api/canciones_db/', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+                    body: formData
                 });
-                if (!res.ok) throw new Error('Error al agregar');
+                if (!res.ok) throw new Error(await res.text());
                 alert('Canción agregada');
+                form.reset();
+                cargarCanciones();
             } catch (err) {
-                alert('Error al enviar la canción');
+                alert('Error al enviar la canción: ' + err.message);
             }
         });
     }
 
-    if (btnConsultaId) {
-        btnConsultaId.addEventListener('click', async () => {
-            const id = document.getElementById('consulta-id').value;
-            try {
-                const res = await fetch(`/api/canciones_db/${id}`);
-                if (!res.ok) throw new Error('No encontrado');
-                const data = await res.json();
-                document.getElementById('resultado-consulta-id').innerText = `Título: ${data.titulo}, Género: ${data.genero}, Artista: ${data.artista}`;
-            } catch (err) {
-                alert('Error al consultar la canción');
-            }
+    // Mostrar todas las canciones
+    async function cargarCanciones() {
+        let res = await fetch('/api/canciones_db/');
+        if (!res.ok) return;
+        const data = await res.json();
+        const tbody = document.querySelector('#tabla-todos-canciones tbody');
+        tbody.innerHTML = '';
+        if (!data.length) return tbody.innerHTML = '<tr><td colspan="7">Sin resultados</td></tr>';
+        data.forEach(c => {
+            const estado = c.eliminado ? "Eliminada" : "Activa";
+            const row = `<tr${c.eliminado ? ' style="background:#900;color:#fff;"' : ''}>
+                <td>${c.id}</td>
+                <td>${c.titulo}</td>
+                <td>${c.genero}</td>
+                <td>${c.duracion}</td>
+                <td>${c.artista}</td>
+                <td>${estado}</td>
+                <td>${c.imagen_url ? `<img src="${c.imagen_url}" class="cancion-img" style="max-width:80px;max-height:80px;border-radius:6px;">` : ''}</td>
+            </tr>`;
+            tbody.innerHTML += row;
         });
     }
 
+    if (btnConsultaTodos) {
+        btnConsultaTodos.addEventListener('click', cargarCanciones);
+    }
+
+    // PUT actualización total con imagen
     document.getElementById('btn-put-actualizar').addEventListener('click', async () => {
-        const id = document.getElementById('put-id').value;
-        const titulo = document.getElementById('put-titulo').value;
-        const genero = document.getElementById('put-genero').value;
-        const duracion = document.getElementById('put-duracion').value;
-        const artista = document.getElementById('put-artista').value;
-
+        const id = document.getElementById('put-id').value.trim();
+        const titulo = document.getElementById('put-titulo').value.trim();
+        const genero = document.getElementById('put-genero').value.trim();
+        const duracion = document.getElementById('put-duracion').value.trim();
+        const artista = document.getElementById('put-artista').value.trim();
+        const explicita = document.getElementById('put-explicita').checked ? "true" : "false";
+        const imagenInput = document.getElementById('put-imagen');
         if (!id || !titulo || !genero || !duracion || !artista) {
             alert("Todos los campos son obligatorios");
             return;
         }
-
-        const data = {
-            titulo: titulo,
-            genero: genero,
-            duracion: parseFloat(duracion),
-            artista: artista
-        };
-
+        const formData = new FormData();
+        formData.append("titulo", titulo);
+        formData.append("genero", genero);
+        formData.append("duracion", duracion);
+        formData.append("artista", artista);
+        formData.append("explicita", explicita);
+        if (imagenInput && imagenInput.files[0]) {
+            formData.append("imagen", imagenInput.files[0]);
+        }
         try {
             const res = await fetch(`/api/canciones_db/${id}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
+                body: formData
             });
-
-            if (!res.ok) {
-                const error = await res.json();
-                alert(`Error: ${error.detail}`);
-            } else {
-                alert('Canción actualizada completamente');
-            }
+            if (!res.ok) throw new Error(await res.text());
+            alert('Canción actualizada completamente');
+            cargarCanciones();
         } catch (error) {
-            console.error("Error en PUT:", error);
-            alert("Ocurrió un error al actualizar");
+            alert("Ocurrió un error al actualizar: " + error.message);
         }
     });
 
-    if (btnConsultaTodos) {
-        btnConsultaTodos.addEventListener('click', async () => {
-            try {
-                // Cambia la URL para incluir eliminadas, si tu backend lo permite:
-                // Por ejemplo: /api/canciones_db?incluir_eliminadas=true
-                let res = await fetch('/api/canciones_db?incluir_eliminadas=true');
-                if (!res.ok) throw new Error('Error en la petición');
-                const data = await res.json();
-                const tbody = document.querySelector('#tabla-todos-canciones tbody');
-                tbody.innerHTML = '';
-                if (!data.length) return tbody.innerHTML = '<tr><td colspan="6">Sin resultados</td></tr>';
-                data.forEach(c => {
-                    const estado = c.eliminado ? "Eliminada" : "Activa";
-                    const row = `<tr${c.eliminado ? ' style="background:#900;color:#fff;"' : ''}><td>${c.id}</td><td>${c.titulo}</td><td>${c.genero}</td><td>${c.duracion}</td><td>${c.artista}</td><td>${estado}</td></tr>`;
-                    tbody.innerHTML += row;
-                });
-            } catch (err) {
-                alert('Error al mostrar canciones');
-            }
-        });
-    }
-
-    document.getElementById('btn-consulta-genero').addEventListener('click', async () => {
-        const genero = document.getElementById('consulta-genero').value;
-        const res = await fetch(`/api/canciones_db/genero/${encodeURIComponent(genero)}`);
-        const data = await res.json();
-        const tbody = document.querySelector('#tabla-genero-canciones tbody');
-        tbody.innerHTML = '';
-        data.forEach(c => {
-            const row = `<tr><td>${c.id}</td><td>${c.titulo}</td><td>${c.genero}</td><td>${c.duracion}</td><td>${c.artista}</td></tr>`;
-            tbody.innerHTML += row;
-        });
+    // PATCH y DELETE sin imagen
+    document.getElementById('btn-patch-actualizar').addEventListener('click', async () => {
+        const id = document.getElementById('patch-id').value.trim();
+        const campo = document.getElementById('patch-campo').value.trim();
+        const valor = document.getElementById('patch-valor').value.trim();
+        if (!id || !campo || !valor) {
+            alert("Completa todos los campos para actualizar un campo.");
+            return;
+        }
+        try {
+            const res = await fetch(`/api/canciones_db/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ [campo]: valor })
+            });
+            if (!res.ok) throw new Error(await res.text());
+            alert('Canción actualizada parcialmente');
+            cargarCanciones();
+        } catch (err) {
+            alert("Ocurrió un error al actualizar: " + err.message);
+        }
     });
 
+    document.getElementById('btn-eliminar').addEventListener('click', async () => {
+        const id = document.getElementById('delete-id').value.trim();
+        if (!id) {
+            alert("Introduce el ID a eliminar.");
+            return;
+        }
+        if (!confirm("¿Seguro que deseas eliminar la canción?")) return;
+        try {
+            const res = await fetch(`/api/canciones_db/${id}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error(await res.text());
+            alert('Canción eliminada');
+            cargarCanciones();
+        } catch (err) {
+            alert("Ocurrió un error al eliminar: " + err.message);
+        }
+    });
     if (spotifyBtn) {
         spotifyBtn.addEventListener('click', async () => {
             const query = document.getElementById('spotify-cancion-query').value;
@@ -134,4 +145,5 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+    cargarCanciones();
 });

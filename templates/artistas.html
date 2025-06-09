@@ -15,6 +15,7 @@
     button { padding: 10px 20px; background: #007bff; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
     button:hover { background: #0056b3; }
     pre { background: #222; color: #0f0; padding: 20px; border-radius: 8px; font-size: 1em; }
+    img.artista-img { max-width: 80px; max-height: 80px; border-radius: 6px; }
   </style>
 </head>
 <body>
@@ -32,13 +33,33 @@
 <main class="content">
   <h1>Gestión de Artistas</h1>
 
-  <form id="form-artista">
+  <!-- Formulario con imagen -->
+  <form id="form-artista" enctype="multipart/form-data" autocomplete="off">
     <input type="text" name="nombre" placeholder="Nombre" required>
     <input type="text" name="pais" placeholder="País" required>
     <input type="text" name="genero_principal" placeholder="Género principal" required>
-    <label><input type="checkbox" name="activo"> Activo</label>
+    <input type="file" name="imagen" accept="image/*">
+    <input type="hidden" name="activo" value="false">
+    <label><input type="checkbox" name="activo" value="true" checked> Activo</label>
     <button type="submit">Agregar</button>
   </form>
+
+  <div class="spotify-section">
+    <h2>Buscar en Spotify</h2>
+    <input type="text" id="spotify-query" placeholder="Nombre del artista">
+    <button id="spotify-search-btn">Buscar</button>
+    <div id="resultado-busqueda-spotify"></div>
+    <table id="tabla-spotify-artistas">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Géneros</th>
+          <th>Popularidad</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
 
   <div class="local-query-section">
     <h2>Consultar por ID</h2>
@@ -63,27 +84,13 @@
           <th>ID</th>
           <th>Nombre</th>
           <th>País</th>
-          <th>Género</th>
+          <th>Género principal</th>
+          <th>Imagen</th>
         </tr>
       </thead>
-      <tbody></tbody>
-    </table>
-  </div>
-
-  <div class="spotify-section">
-    <h2>Buscar en Spotify</h2>
-    <input type="text" id="spotify-query" placeholder="Nombre del artista">
-    <button id="spotify-search-btn">Buscar</button>
-    <div id="resultado-busqueda-spotify"></div>
-    <table id="tabla-spotify-artistas">
-      <thead>
-        <tr>
-          <th>Nombre</th>
-          <th>Géneros</th>
-          <th>Popularidad</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
+      <tbody>
+        <!-- Los artistas se llenan aquí -->
+      </tbody>
     </table>
   </div>
 
@@ -93,6 +100,9 @@
     <input type="text" id="put-nombre" placeholder="Nuevo nombre">
     <input type="text" id="put-pais" placeholder="Nuevo país">
     <input type="text" id="put-genero" placeholder="Nuevo género">
+    <input type="file" id="put-imagen" accept="image/*">
+    <input type="hidden" id="put-activo-hidden" value="false">
+    <label><input type="checkbox" id="put-activo" value="true" checked> Activo</label>
     <button id="btn-put-actualizar">Actualizar todo</button>
 
     <h2>Actualizar artista (PATCH)</h2>
@@ -112,6 +122,214 @@
   <p>© 2025 Proyecto Integrador</p>
 </footer>
 
-<script src="/static/js/artistas.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Crear artista con imagen
+    document.getElementById('form-artista').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const formData = new FormData(form);
+
+        // Siempre elimina y agrega solo un 'activo' como string
+        formData.delete('activo');
+        formData.append('activo', document.querySelector('[name="activo"]:checked') ? "true" : "false");
+
+        try {
+            const res = await fetch('/api/artistas_db/', {
+                method: 'POST',
+                body: formData
+            });
+            if (!res.ok) throw new Error(await res.text());
+            form.reset();
+            cargarArtistas();
+        } catch (err) {
+            alert("Error agregando artista: " + err.message);
+        }
+    });
+
+    // Búsqueda de artistas en Spotify
+    document.getElementById('spotify-search-btn').addEventListener('click', buscarSpotify);
+    document.getElementById('spotify-query').addEventListener('keyup', function(e) {
+        if (e.key === "Enter") buscarSpotify();
+    });
+
+    async function buscarSpotify() {
+        const nombre = document.getElementById('spotify-query').value.trim();
+        const tbody = document.querySelector('#tabla-spotify-artistas tbody');
+        const div = document.getElementById('resultado-busqueda-spotify');
+        tbody.innerHTML = '';
+        div.innerHTML = '';
+        if (!nombre) {
+            div.innerHTML = "Introduce un nombre de artista para buscar en Spotify.";
+            return;
+        }
+        try {
+            const res = await fetch(`/api/spotify/artistas?nombre=${encodeURIComponent(nombre)}`);
+            if (!res.ok) throw new Error(await res.text());
+            const data = await res.json();
+            if (Array.isArray(data) && data.length > 0) {
+                data.forEach(a => {
+                    const row = `<tr>
+                        <td>${a.nombre}</td>
+                        <td>${a.generos && a.generos.length ? a.generos.join(", ") : "-"}</td>
+                        <td>${a.popularidad ?? "-"}</td>
+                    </tr>`;
+                    tbody.innerHTML += row;
+                });
+            } else {
+                div.innerHTML = "No se encontraron artistas en Spotify.";
+            }
+        } catch (err) {
+            div.innerHTML = `Error al buscar en Spotify: ${err.message}`;
+        }
+    }
+
+    // Mostrar artista por ID
+    document.getElementById('btn-consulta-id').addEventListener('click', async () => {
+        const id = document.getElementById('consulta-id').value.trim();
+        const div = document.getElementById('resultado-consulta-id');
+        div.innerHTML = '';
+        if (!id) {
+            div.innerHTML = "Introduce un ID.";
+            return;
+        }
+        try {
+            const res = await fetch(`/api/artistas_db/${id}`);
+            if (res.ok) {
+                const data = await res.json();
+                div.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>${data.imagen_url ? `<img src="${data.imagen_url}" class="artista-img"/>` : ''}`;
+            } else {
+                div.innerHTML = "Artista no encontrado";
+            }
+        } catch {
+            div.innerHTML = "Error al consultar por ID";
+        }
+    });
+
+    // Mostrar artista por país
+    document.getElementById('btn-buscar-pais').addEventListener('click', async () => {
+        const pais = document.getElementById('buscar-pais').value.trim();
+        const resultadoDiv = document.getElementById('resultado-busqueda-pais');
+        resultadoDiv.innerHTML = '';
+        if (!pais) {
+            resultadoDiv.innerHTML = "Introduce un país para buscar.";
+            return;
+        }
+        try {
+            const res = await fetch(`/api/artistas_db?pais=${encodeURIComponent(pais)}`);
+            const data = await res.json();
+            if (Array.isArray(data) && data.length > 0) {
+                resultadoDiv.innerHTML = `<pre>${JSON.stringify(data[0], null, 2)}</pre>${data[0].imagen_url ? `<img src="${data[0].imagen_url}" class="artista-img"/>` : ''}`;
+            } else {
+                resultadoDiv.innerHTML = "Artista no encontrado para ese país";
+            }
+        } catch {
+            resultadoDiv.innerHTML = "Error al buscar por país";
+        }
+    });
+
+    // Mostrar todos los artistas
+    document.getElementById('btn-consulta-todos').addEventListener('click', async () => {
+        await cargarArtistas();
+    });
+
+    async function cargarArtistas() {
+        let url = '/api/artistas_db/';
+        const res = await fetch(url);
+        const data = await res.json();
+        const tbody = document.querySelector('#tabla-todos-artistas tbody');
+        tbody.innerHTML = '';
+        if (!data.length) {
+            tbody.innerHTML = '<tr><td colspan="5">No hay artistas registrados</td></tr>';
+        } else {
+            data.forEach(a => {
+                const row = `<tr>
+                    <td>${a.id}</td>
+                    <td>${a.nombre}</td>
+                    <td>${a.pais}</td>
+                    <td>${a.genero_principal || a.genero || ""}</td>
+                    <td>${a.imagen_url ? `<img src="${a.imagen_url}" class="artista-img" style="max-width:80px;max-height:80px;border-radius:6px;">` : ''}</td>
+                </tr>`;
+                tbody.innerHTML += row;
+            });
+        }
+    }
+
+    // Actualizar artista (PUT) con imagen y activo
+    document.getElementById('btn-put-actualizar').addEventListener('click', async () => {
+        const id = document.getElementById('put-id').value.trim();
+        const nombre = document.getElementById('put-nombre').value.trim();
+        const pais = document.getElementById('put-pais').value.trim();
+        const genero_principal = document.getElementById('put-genero').value.trim();
+        const activo = document.getElementById('put-activo').checked ? "true" : "false";
+        const imagenInput = document.getElementById('put-imagen');
+        if (!id || !nombre || !pais || !genero_principal) {
+            alert("Completa todos los campos para actualizar.");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("nombre", nombre);
+        formData.append("pais", pais);
+        formData.append("genero_principal", genero_principal);
+        formData.append("activo", activo);
+        if (imagenInput && imagenInput.files[0]) {
+            formData.append("imagen", imagenInput.files[0]);
+        }
+
+        try {
+            const res = await fetch(`/api/artistas_db/${id}`, {
+                method: "PUT",
+                body: formData
+            });
+            if (!res.ok) throw new Error(await res.text());
+            cargarArtistas();
+        } catch (err) {
+            alert("Error al actualizar artista: " + err.message);
+        }
+    });
+
+    // Actualizar campo (PATCH) sin imagen
+    document.getElementById('btn-patch-actualizar').addEventListener('click', async () => {
+        const id = document.getElementById('patch-id').value.trim();
+        const campo = document.getElementById('patch-campo').value.trim();
+        const valor = document.getElementById('patch-valor').value.trim();
+        if (!id || !campo || !valor) {
+            alert("Completa todos los campos para actualizar un campo.");
+            return;
+        }
+        try {
+            const res = await fetch(`/api/artistas_db/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ [campo]: valor })
+            });
+            if (!res.ok) throw new Error(await res.text());
+            cargarArtistas();
+        } catch (err) {
+            alert("Error al actualizar campo: " + err.message);
+        }
+    });
+
+    // Eliminar artista
+    document.getElementById('btn-eliminar').addEventListener('click', async () => {
+        const id = document.getElementById('delete-id').value.trim();
+        if (!id) {
+            alert("Introduce el ID a eliminar.");
+            return;
+        }
+        if (!confirm("¿Seguro que deseas eliminar el artista?")) return;
+        try {
+            const res = await fetch(`/api/artistas_db/${id}`, { method: "DELETE" });
+            if (!res.ok) throw new Error(await res.text());
+            cargarArtistas();
+        } catch (err) {
+            alert("Error al eliminar artista: " + err.message);
+        }
+    });
+
+    cargarArtistas();
+});
+</script>
 </body>
 </html>
