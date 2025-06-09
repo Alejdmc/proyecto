@@ -1,13 +1,13 @@
 from typing import Optional
-from sqlmodel import SQLModel, Field
+from sqlmodel import SQLModel, Field, Column, LargeBinary
 
 class ArtistaDB(SQLModel, table=True):
     id: int = Field(default=None, primary_key=True)
     nombre: str
     pais: str
     genero_principal: str
-    activo: bool
-    imagen_url: str = None
+    activo: bool = Field(default=True)
+    imagen_bytes: bytes = Field(sa_column=Column(LargeBinary), default=None)
     eliminado: bool = Field(default=False)
 
 class CancionDB(SQLModel, table=True):
@@ -17,5 +17,5 @@ class CancionDB(SQLModel, table=True):
     duracion: float
     artista: str
     explicita: bool = Field(default=False)
-    imagen_url: str = None
+    imagen_bytes: bytes = Field(sa_column=Column(LargeBinary), default=None)
     eliminado: bool = Field(default=False)

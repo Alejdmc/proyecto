@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Form, File, UploadFile, Depends, HTTPException
+from fastapi import APIRouter, Form, File, UploadFile, Depends, HTTPException, Response
+from sqlalchemy import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlalchemy.future import select
 from models import CancionDB
 from utils.connection_db import get_session
-import os
+import  os
 
 router = APIRouter(prefix="/api/canciones_db", tags=["canciones"])
 
@@ -21,30 +21,28 @@ async def crear_cancion(
     session: AsyncSession = Depends(get_session)
 ):
     explicita_bool = explicita.lower() == "true"
-    imagen_url = None
+    imagen_bytes = None
     if imagen and imagen.filename:
-        filepath = os.path.join(UPLOAD_DIR, imagen.filename)
-        with open(filepath, "wb") as buffer:
-            buffer.write(await imagen.read())
-        imagen_url = f"/static/uploads/{imagen.filename}"
-
+        imagen_bytes = await imagen.read()
     cancion = CancionDB(
         titulo=titulo,
         genero=genero,
         duracion=duracion,
         artista=artista,
         explicita=explicita_bool,
-        imagen_url=imagen_url
+        imagen_bytes=imagen_bytes
     )
     session.add(cancion)
     await session.commit()
     await session.refresh(cancion)
     return cancion
 
-@router.get("/")
-async def get_canciones(session: AsyncSession = Depends(get_session)):
-    result = await session.execute(select(CancionDB).where(CancionDB.eliminado == False))
-    return result.scalars().all()
+@router.get("/{cancion_id}/imagen")
+async def obtener_imagen_cancion(cancion_id: int, session: AsyncSession = Depends(get_session)):
+    cancion = await session.get(CancionDB, cancion_id)
+    if not cancion or not cancion.imagen_bytes:
+        raise HTTPException(status_code=404, detail="Imagen no encontrada")
+    return Response(content=cancion.imagen_bytes, media_type="image/jpeg")  # Cambia a image/png si corresponde
 
 @router.put("/{cancion_id}")
 async def put_cancion(

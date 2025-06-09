@@ -8,7 +8,7 @@
   <style>
     body { font-family: 'Press Start 2P', cursive; }
     main.content { margin-top: 120px; padding: 60px; }
-    table, form, .local-query-section { margin: 30px auto; width: 85%; background: #d1d0d0; padding: 30px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+    table, form, .local-query-section, .spotify-section { margin: 30px auto; width: 85%; background: #d1d0d0; padding: 30px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
     table { background: #333; color: #fff; }
     table th, table td { padding: 12px; }
     header img, footer img { width: 100%; max-height: 180px; object-fit: cover; border-radius: 8px; margin-bottom: 20px; }
@@ -89,14 +89,15 @@
     </table>
   </div>
   <div class="spotify-section">
-        <h2>Buscar Canciones en Spotify</h2>
-        <input type="text" id="spotify-cancion-query" placeholder="Título de la canción en Spotify">
-        <button id="spotify-cancion-btn">Buscar en Spotify</button>
-        <table id="tabla-spotify-canciones"><thead><tr><th>Nombre</th><th>Artista</th><th>Álbum</th></tr></thead><tbody></tbody></table>
-    </div>
+    <h2>Buscar Canciones en Spotify</h2>
+    <input type="text" id="spotify-cancion-query" placeholder="Título de la canción en Spotify">
+    <button id="spotify-cancion-btn">Buscar en Spotify</button>
+    <table id="tabla-spotify-canciones"><thead><tr><th>Nombre</th><th>Artista</th><th>Álbum</th></tr></thead><tbody></tbody></table>
+  </div>
 </main>
 <script>
   document.addEventListener('DOMContentLoaded', () => {
+    // Spotify (igual que antes)
     const spotifyBtn = document.getElementById('spotify-cancion-btn');
     spotifyBtn?.addEventListener('click', async () => {
       const query = document.getElementById('spotify-cancion-query').value;
@@ -114,15 +115,41 @@
         tbody.innerHTML += row;
       });
     });
+
+    // Corrección: mostrar imagen desde la base de datos (endpoint binario)
+    async function cargarCanciones() {
+      let res = await fetch('/api/canciones_db/');
+      if (!res.ok) return;
+      const data = await res.json();
+      const tbody = document.querySelector('#tabla-todos-canciones tbody');
+      tbody.innerHTML = '';
+      if (!data.length) return tbody.innerHTML = '<tr><td colspan="7">Sin resultados</td></tr>';
+      data.forEach(c => {
+        const estado = c.eliminado ? "Eliminada" : "Activa";
+        const imagenHtml = c.id ? `<img src="/api/canciones_db/${c.id}/imagen" class="cancion-img" style="max-width:80px;max-height:80px;border-radius:6px;">` : '';
+        const row = `<tr${c.eliminado ? ' style="background:#900;color:#fff;"' : ''}>
+          <td>${c.id}</td>
+          <td>${c.titulo}</td>
+          <td>${c.genero}</td>
+          <td>${c.duracion}</td>
+          <td>${c.artista}</td>
+          <td>${estado}</td>
+          <td>${imagenHtml}</td>
+        </tr>`;
+        tbody.innerHTML += row;
+      });
+    }
+
+    // El resto de tu JS (PUT/PATCH/DELETE) puede quedarse igual,
+    // solo asegúrate de llamar cargarCanciones() cuando corresponda.
+    document.getElementById('btn-consulta-todos').addEventListener('click', cargarCanciones);
+    cargarCanciones();
   });
 </script>
 <footer>
   <img src="/static/img/footer.jpg" alt="Banner Footer">
   <p>© 2025 Proyecto Integrador</p>
 </footer>
-
-<script src="/static/js/canciones.js">
-
-</script>
+<!-- Si tuvieras un canciones.js aparte, puedes quitar el src para no duplicar funciones -->
 </body>
 </html>

@@ -129,11 +129,8 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         const form = e.target;
         const formData = new FormData(form);
-
-        // Siempre elimina y agrega solo un 'activo' como string
         formData.delete('activo');
         formData.append('activo', document.querySelector('[name="activo"]:checked') ? "true" : "false");
-
         try {
             const res = await fetch('/api/artistas_db/', {
                 method: 'POST',
@@ -197,7 +194,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await fetch(`/api/artistas_db/${id}`);
             if (res.ok) {
                 const data = await res.json();
-                div.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>${data.imagen_url ? `<img src="${data.imagen_url}" class="artista-img"/>` : ''}`;
+                div.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>${
+                  data.id ? `<img src="/api/artistas_db/${data.id}/imagen" class="artista-img"/>` : ''}`;
             } else {
                 div.innerHTML = "Artista no encontrado";
             }
@@ -219,7 +217,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await fetch(`/api/artistas_db?pais=${encodeURIComponent(pais)}`);
             const data = await res.json();
             if (Array.isArray(data) && data.length > 0) {
-                resultadoDiv.innerHTML = `<pre>${JSON.stringify(data[0], null, 2)}</pre>${data[0].imagen_url ? `<img src="${data[0].imagen_url}" class="artista-img"/>` : ''}`;
+                resultadoDiv.innerHTML = `<pre>${JSON.stringify(data[0], null, 2)}</pre>${
+                  data[0].id ? `<img src="/api/artistas_db/${data[0].id}/imagen" class="artista-img"/>` : ''}`;
             } else {
                 resultadoDiv.innerHTML = "Artista no encontrado para ese país";
             }
@@ -248,7 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td>${a.nombre}</td>
                     <td>${a.pais}</td>
                     <td>${a.genero_principal || a.genero || ""}</td>
-                    <td>${a.imagen_url ? `<img src="${a.imagen_url}" class="artista-img" style="max-width:80px;max-height:80px;border-radius:6px;">` : ''}</td>
+                    <td>${a.id ? `<img src="/api/artistas_db/${a.id}/imagen" class="artista-img" style="max-width:80px;max-height:80px;border-radius:6px;">` : ''}</td>
                 </tr>`;
                 tbody.innerHTML += row;
             });
