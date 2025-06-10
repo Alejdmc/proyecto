@@ -1,12 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Crear canción con imagen
     const form = document.getElementById('form-cancion');
     if (form) {
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(form);
 
-            // Solo un campo explicita y como string
             formData.delete('explicita');
             formData.append("explicita", document.querySelector('[name="explicita"]:checked') ? "true" : "false");
 
@@ -29,7 +27,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Mostrar todas las canciones
     async function cargarCanciones() {
         const res = await fetch('/api/canciones_db/');
         const data = await res.json();
@@ -54,7 +51,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // PUT: Actualizar canción con imagen y explicita
     document.getElementById('btn-put-actualizar').addEventListener('click', async () => {
         const id = document.getElementById('put-id').value.trim();
         const titulo = document.getElementById('put-titulo').value.trim();
@@ -89,7 +85,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // PATCH: Actualizar campo de canción sin imagen
     document.getElementById('btn-patch-actualizar').addEventListener('click', async () => {
         const id = document.getElementById('patch-id').value.trim();
         const campo = document.getElementById('patch-campo').value.trim();
@@ -111,7 +106,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Eliminar canción
     document.getElementById('btn-eliminar').addEventListener('click', async () => {
         const id = document.getElementById('delete-id').value.trim();
         if (!id) {
@@ -128,7 +122,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // BUSCAR CANCIONES EN SPOTIFY
     const spotifyBtn = document.getElementById('spotify-cancion-btn');
     spotifyBtn?.addEventListener('click', async () => {
         const query = document.getElementById('spotify-cancion-query').value.trim();
@@ -152,6 +145,5 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Mostrar todas al cargar
     cargarCanciones();
 });

@@ -1,11 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Crear artista con imagen
         document.getElementById('form-artista').addEventListener('submit', async (e) => {
         e.preventDefault();
         const form = e.target;
         const formData = new FormData(form);
 
-        // Siempre deja solo un campo activo y lo manda como string
         formData.delete('activo');
         formData.append("activo", document.querySelector('[name="activo"]:checked') ? "true" : "false");
 
@@ -27,8 +25,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-
-    // Mostrar artista por ID
     document.getElementById('btn-consulta-id').addEventListener('click', async () => {
         const id = document.getElementById('consulta-id').value.trim();
         const div = document.getElementById('resultado-consulta-id');
@@ -50,7 +46,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Mostrar artista por país
     document.getElementById('btn-buscar-pais').addEventListener('click', async () => {
         const pais = document.getElementById('buscar-pais').value.trim();
         const resultadoDiv = document.getElementById('resultado-busqueda-pais');
@@ -99,7 +94,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Actualizar artista (PUT) con imagen y activo
     document.getElementById('btn-put-actualizar').addEventListener('click', async () => {
         const id = document.getElementById('put-id').value.trim();
         const nombre = document.getElementById('put-nombre').value.trim();
@@ -133,7 +127,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Actualizar campo (PATCH) sin imagen
     document.getElementById('btn-patch-actualizar').addEventListener('click', async () => {
         const id = document.getElementById('patch-id').value.trim();
         const campo = document.getElementById('patch-campo').value.trim();
@@ -155,7 +148,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Eliminar artista
     document.getElementById('btn-eliminar').addEventListener('click', async () => {
         const id = document.getElementById('delete-id').value.trim();
         if (!id) {
@@ -172,7 +164,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // BUSQUEDA DE ARTISTAS EN SPOTIFY
     document.getElementById('spotify-search-btn').addEventListener('click', buscarSpotify);
     document.getElementById('spotify-query').addEventListener('keyup', function(e) {
         if (e.key === "Enter") buscarSpotify();

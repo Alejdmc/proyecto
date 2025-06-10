@@ -54,7 +54,6 @@ async def canciones_page(request: Request):
 async def info_page(request: Request):
     return templates.TemplateResponse("info.html", {"request": request})
 
-# Spotify integration
 async def obtener_token_spotify():
     manual_token = os.getenv("SPOTIFY_MANUAL_TOKEN")
     if manual_token:

@@ -33,7 +33,6 @@
 <main class="content">
   <h1>Gestión de Canciones</h1>
 
-  <!-- Formulario con imagen -->
   <form id="form-cancion" enctype="multipart/form-data" autocomplete="off">
     <input type="text" name="titulo" placeholder="Título" required>
     <input type="text" name="genero" placeholder="Género" required>
@@ -84,7 +83,6 @@
         </tr>
       </thead>
       <tbody>
-        <!-- Las canciones se llenan aquí -->
       </tbody>
     </table>
   </div>
@@ -97,12 +95,10 @@
 </main>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  // Crear canción con imagen
   document.getElementById('form-cancion').addEventListener('submit', async (e) => {
       e.preventDefault();
       const form = e.target;
       const formData = new FormData(form);
-      // El checkbox si no está marcado, se debe enviar "false":
       formData.delete('explicita');
       formData.append('explicita', document.querySelector('[name="explicita"]:checked') ? "true" : "false");
       try {
@@ -118,7 +114,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
   });
 
-  // PUT: Actualizar canción con imagen
   document.getElementById('btn-put-actualizar').addEventListener('click', async () => {
     const id = document.getElementById('put-id').value.trim();
     const titulo = document.getElementById('put-titulo').value.trim();
@@ -152,7 +147,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // PATCH: Actualizar campo de canción
   document.getElementById('btn-patch-actualizar').addEventListener('click', async () => {
     const id = document.getElementById('patch-id').value.trim();
     const campo = document.getElementById('patch-campo').value.trim();
@@ -174,7 +168,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // DELETE: Eliminar canción
   document.getElementById('btn-eliminar').addEventListener('click', async () => {
     const id = document.getElementById('delete-id').value.trim();
     if (!id) {
@@ -191,7 +184,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Consultar todas las canciones
   document.getElementById('btn-consulta-todos').addEventListener('click', cargarCanciones);
 
   async function cargarCanciones() {
@@ -217,7 +209,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Buscar canciones en Spotify
   const spotifyBtn = document.getElementById('spotify-cancion-btn');
   spotifyBtn?.addEventListener('click', async () => {
     const query = document.getElementById('spotify-cancion-query').value;
@@ -238,7 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 <footer>
   <img src="/static/img/footer.jpg" alt="Banner Footer">
-  <p>© 2025 Proyecto Integrador</p>
+  <p>© 2025 Abile.</p>
 </footer>
 </body>
 </html>
