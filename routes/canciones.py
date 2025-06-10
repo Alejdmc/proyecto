@@ -7,11 +7,11 @@ from utils.connection_db import get_session
 
 router = APIRouter(prefix="/api/canciones_db", tags=["canciones"])
 
-# 1. ENDPOINT FIJO "all" ANTES DEL DINÁMICO
-@router.get("/all")
+@router.get("/all", response_model=List[CancionResponse])
 async def get_all_canciones(session: AsyncSession = Depends(get_session)):
     result = await session.execute(select(CancionDB))
-    return result.scalars().all()
+    canciones = result.scalars().all()
+    return [CancionResponse.model_validate(c) for c in canciones]
 
 @router.post("/", response_model=CancionResponse)
 async def crear_cancion(
@@ -43,14 +43,15 @@ async def crear_cancion(
 @router.get("/", response_model=List[CancionResponse])
 async def get_canciones(session: AsyncSession = Depends(get_session)):
     result = await session.execute(select(CancionDB).where(CancionDB.eliminado == False))
-    return result.scalars().all()
+    canciones = result.scalars().all()
+    return [CancionResponse.model_validate(c) for c in canciones]
 
 @router.get("/{cancion_id}", response_model=CancionResponse)
 async def get_cancion_por_id(cancion_id: int, session: AsyncSession = Depends(get_session)):
     cancion = await session.get(CancionDB, cancion_id)
     if not cancion or cancion.eliminado:
         raise HTTPException(status_code=404, detail="Canción no encontrada")
-    return cancion
+    return CancionResponse.model_validate(cancion)
 
 @router.get("/{cancion_id}/imagen")
 async def obtener_imagen_cancion(cancion_id: int, session: AsyncSession = Depends(get_session)):
@@ -82,7 +83,7 @@ async def put_cancion(
         cancion.imagen_bytes = await imagen.read()
     await session.commit()
     await session.refresh(cancion)
-    return cancion
+    return CancionResponse.model_validate(cancion)
 
 @router.patch("/{cancion_id}", response_model=CancionResponse)
 async def patch_cancion(
@@ -99,7 +100,7 @@ async def patch_cancion(
                 setattr(cancion, key, value)
     await session.commit()
     await session.refresh(cancion)
-    return cancion
+    return CancionResponse.model_validate(cancion)
 
 @router.delete("/{cancion_id}")
 async def delete_cancion(cancion_id: int, session: AsyncSession = Depends(get_session)):
