@@ -9,7 +9,6 @@ DATABASE_URL = (
     "btng9poyhgttpjvdekzs"
 )
 
-# Recomiendo ajustar pool_size según el límite de tu plan de base de datos.
 engine: AsyncEngine = create_async_engine(
     DATABASE_URL,
     echo=True,
@@ -28,7 +27,6 @@ async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
 
-# Tipado correcto para FastAPI
 async def get_session() -> AsyncSession:
     async with async_session() as session:
         yield session

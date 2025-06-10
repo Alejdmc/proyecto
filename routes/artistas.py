@@ -20,6 +20,9 @@ async def crear_artista(
     imagen_bytes = None
     if imagen and imagen.filename:
         imagen_bytes = await imagen.read()
+        print("Tamaño de la imagen subida (artista):", len(imagen_bytes))
+    else:
+        print("No se recibió imagen para artista")
     artista = ArtistaDB(
         nombre=nombre,
         pais=pais,
@@ -30,26 +33,37 @@ async def crear_artista(
     session.add(artista)
     await session.commit()
     await session.refresh(artista)
-    return artista
+    return {
+        **artista.dict(),
+        "tiene_imagen": bool(artista.imagen_bytes)
+    }
 
 @router.get("/", response_model=List[ArtistaResponse])
 async def get_artistas(session: AsyncSession = Depends(get_session)):
     result = await session.execute(select(ArtistaDB).where(ArtistaDB.eliminado == False))
-    return result.scalars().all()
+    artistas = result.scalars().all()
+    return [
+        {**a.dict(), "tiene_imagen": bool(a.imagen_bytes)} for a in artistas
+    ]
 
 @router.get("/{artista_id}", response_model=ArtistaResponse)
 async def get_artista_por_id(artista_id: int, session: AsyncSession = Depends(get_session)):
     artista = await session.get(ArtistaDB, artista_id)
     if not artista or artista.eliminado:
         raise HTTPException(status_code=404, detail="Artista no encontrado")
-    return artista
+    return {
+        **artista.dict(),
+        "tiene_imagen": bool(artista.imagen_bytes)
+    }
 
 @router.get("/{artista_id}/imagen")
 async def obtener_imagen_artista(artista_id: int, session: AsyncSession = Depends(get_session)):
     artista = await session.get(ArtistaDB, artista_id)
-    if not artista or not artista.imagen_bytes:
-        raise HTTPException(status_code=404, detail="Imagen no encontrada")
-    return Response(content=artista.imagen_bytes, media_type="image/jpeg")
+    if not artista or artista.eliminado:
+        raise HTTPException(status_code=404, detail="Artista no encontrada")
+    if artista.imagen_bytes:
+        return Response(content=artista.imagen_bytes, media_type="image/jpeg")
+    return Response(status_code=204)
 
 @router.put("/{artista_id}", response_model=ArtistaResponse)
 async def put_artista(
@@ -72,7 +86,10 @@ async def put_artista(
         artista.imagen_bytes = await imagen.read()
     await session.commit()
     await session.refresh(artista)
-    return artista
+    return {
+        **artista.dict(),
+        "tiene_imagen": bool(artista.imagen_bytes)
+    }
 
 @router.patch("/{artista_id}", response_model=ArtistaResponse)
 async def patch_artista(
@@ -89,7 +106,10 @@ async def patch_artista(
                 setattr(artista, key, value)
     await session.commit()
     await session.refresh(artista)
-    return artista
+    return {
+        **artista.dict(),
+        "tiene_imagen": bool(artista.imagen_bytes)
+    }
 
 @router.delete("/{artista_id}")
 async def delete_artista(artista_id: int, session: AsyncSession = Depends(get_session)):
