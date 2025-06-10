@@ -1,4 +1,4 @@
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncEngine
 from sqlalchemy.orm import sessionmaker
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel import SQLModel
@@ -9,7 +9,16 @@ DATABASE_URL = (
     "btng9poyhgttpjvdekzs"
 )
 
-engine = create_async_engine(DATABASE_URL, echo=True, future=True)
+# Recomiendo ajustar pool_size según el límite de tu plan de base de datos.
+engine: AsyncEngine = create_async_engine(
+    DATABASE_URL,
+    echo=True,
+    future=True,
+    pool_size=5,
+    max_overflow=10,
+    pool_timeout=30,
+    pool_recycle=1800
+)
 
 async_session = sessionmaker(
     engine, class_=AsyncSession, expire_on_commit=False
@@ -19,6 +28,7 @@ async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
 
+# Tipado correcto para FastAPI
 async def get_session() -> AsyncSession:
     async with async_session() as session:
         yield session

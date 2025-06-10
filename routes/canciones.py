@@ -49,9 +49,11 @@ async def get_cancion_por_id(cancion_id: int, session: AsyncSession = Depends(ge
 @router.get("/{cancion_id}/imagen")
 async def obtener_imagen_cancion(cancion_id: int, session: AsyncSession = Depends(get_session)):
     cancion = await session.get(CancionDB, cancion_id)
-    if not cancion or not cancion.imagen_bytes:
-        raise HTTPException(status_code=404, detail="Imagen no encontrada")
-    return Response(content=cancion.imagen_bytes, media_type="image/jpeg")
+    if not cancion or cancion.eliminado:
+        raise HTTPException(status_code=404, detail="Canción no encontrada")
+    if cancion.imagen_bytes:
+        return Response(content=cancion.imagen_bytes, media_type="image/jpeg")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 @router.put("/{cancion_id}", response_model=CancionResponse)
 async def put_cancion(
