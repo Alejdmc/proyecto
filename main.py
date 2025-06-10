@@ -124,13 +124,3 @@ async def buscar_canciones_spotify(titulo: str):
 async def spotify_canciones(q: str):
     data = await spotify_search(q, "track")
     return data
-
-@app.get("/api/artistas_db/all")
-async def get_all_artistas(session: AsyncSession = Depends(get_session)):
-    result = await session.execute(select(ArtistaDB))
-    return result.scalars().all()
-
-@app.get("/api/canciones_db/all")
-async def get_all_canciones(session: AsyncSession = Depends(get_session)):
-    result = await session.execute(select(CancionDB))
-    return result.scalars().all()
