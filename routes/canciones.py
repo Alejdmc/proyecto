@@ -7,6 +7,12 @@ from utils.connection_db import get_session
 
 router = APIRouter(prefix="/api/canciones_db", tags=["canciones"])
 
+# 1. ENDPOINT FIJO "all" ANTES DEL DINÁMICO
+@router.get("/all")
+async def get_all_canciones(session: AsyncSession = Depends(get_session)):
+    result = await session.execute(select(CancionDB))
+    return result.scalars().all()
+
 @router.post("/", response_model=CancionResponse)
 async def crear_cancion(
     titulo: str = Form(...),
