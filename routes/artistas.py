@@ -7,11 +7,11 @@ from utils.connection_db import get_session
 
 router = APIRouter(prefix="/api/artistas_db", tags=["artistas"])
 
-# ENDPOINT FIJO "all" ANTES DEL DINÁMICO
-@router.get("/all")
+@router.get("/all", response_model=List[ArtistaResponse])
 async def get_all_artistas(session: AsyncSession = Depends(get_session)):
     result = await session.execute(select(ArtistaDB))
-    return result.scalars().all()
+    artistas = result.scalars().all()
+    return [ArtistaResponse.model_validate(a) for a in artistas]
 
 @router.post("/", response_model=ArtistaResponse)
 async def crear_artista(
@@ -41,14 +41,15 @@ async def crear_artista(
 @router.get("/", response_model=List[ArtistaResponse])
 async def get_artistas(session: AsyncSession = Depends(get_session)):
     result = await session.execute(select(ArtistaDB).where(ArtistaDB.eliminado == False))
-    return result.scalars().all()
+    artistas = result.scalars().all()
+    return [ArtistaResponse.model_validate(a) for a in artistas]
 
 @router.get("/{artista_id}", response_model=ArtistaResponse)
 async def get_artista_por_id(artista_id: int, session: AsyncSession = Depends(get_session)):
     artista = await session.get(ArtistaDB, artista_id)
     if not artista or artista.eliminado:
         raise HTTPException(status_code=404, detail="Artista no encontrado")
-    return artista
+    return ArtistaResponse.model_validate(artista)
 
 @router.get("/{artista_id}/imagen")
 async def obtener_imagen_artista(artista_id: int, session: AsyncSession = Depends(get_session)):
@@ -78,7 +79,7 @@ async def put_artista(
         artista.imagen_bytes = await imagen.read()
     await session.commit()
     await session.refresh(artista)
-    return artista
+    return ArtistaResponse.model_validate(artista)
 
 @router.patch("/{artista_id}", response_model=ArtistaResponse)
 async def patch_artista(
@@ -95,7 +96,7 @@ async def patch_artista(
                 setattr(artista, key, value)
     await session.commit()
     await session.refresh(artista)
-    return artista
+    return ArtistaResponse.model_validate(artista)
 
 @router.delete("/{artista_id}")
 async def delete_artista(artista_id: int, session: AsyncSession = Depends(get_session)):
