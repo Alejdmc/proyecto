@@ -7,12 +7,18 @@ from utils.connection_db import get_session
 
 router = APIRouter(prefix="/api/artistas_db", tags=["artistas"])
 
+# ENDPOINT FIJO "all" ANTES DEL DINÁMICO
+@router.get("/all")
+async def get_all_artistas(session: AsyncSession = Depends(get_session)):
+    result = await session.execute(select(ArtistaDB))
+    return result.scalars().all()
+
 @router.post("/", response_model=ArtistaResponse)
 async def crear_artista(
     nombre: str = Form(...),
     pais: str = Form(...),
     genero_principal: str = Form(...),
-    activo: str = Form("false"),
+    activo: str = Form("true"),
     imagen: UploadFile = File(None),
     session: AsyncSession = Depends(get_session)
 ):
@@ -57,7 +63,7 @@ async def put_artista(
     nombre: str = Form(...),
     pais: str = Form(...),
     genero_principal: str = Form(...),
-    activo: str = Form("false"),
+    activo: str = Form("true"),
     imagen: UploadFile = File(None),
     session: AsyncSession = Depends(get_session)
 ):
