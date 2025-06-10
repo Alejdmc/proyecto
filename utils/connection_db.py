@@ -14,7 +14,7 @@ engine: AsyncEngine = create_async_engine(
     echo=True,
     future=True,
     pool_size=5,
-    max_overflow=10,
+    max_overflow=0,
     pool_timeout=30,
     pool_recycle=1800
 )

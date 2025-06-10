@@ -34,7 +34,7 @@
   <h1>Gestión de Canciones</h1>
 
   <!-- Formulario con imagen -->
-  <form id="form-cancion" enctype="multipart/form-data">
+  <form id="form-cancion" enctype="multipart/form-data" autocomplete="off">
     <input type="text" name="titulo" placeholder="Título" required>
     <input type="text" name="genero" placeholder="Género" required>
     <input type="number" name="duracion" step="0.01" placeholder="Duración (min)" required>
@@ -96,60 +96,149 @@
   </div>
 </main>
 <script>
-  document.addEventListener('DOMContentLoaded', () => {
-    // Spotify (igual que antes)
-    const spotifyBtn = document.getElementById('spotify-cancion-btn');
-    spotifyBtn?.addEventListener('click', async () => {
-      const query = document.getElementById('spotify-cancion-query').value;
-      if (!query.trim()) return alert("Escribe un título de canción");
-
-      const res = await fetch(`/api/spotify/canciones?titulo=${encodeURIComponent(query)}`);
-      const data = await res.json();
-      const tbody = document.querySelector('#tabla-spotify-canciones tbody');
-      tbody.innerHTML = '';
-
-      if (!data.length) return tbody.innerHTML = '<tr><td colspan="3">Sin resultados</td></tr>';
-
-      data.forEach(c => {
-        const row = `<tr><td>${c.nombre}</td><td>${c.artista}</td><td>${c.album}</td></tr>`;
-        tbody.innerHTML += row;
-      });
-    });
-
-    // Corrección: mostrar imagen desde la base de datos (endpoint binario)
-    async function cargarCanciones() {
-      let res = await fetch('/api/canciones_db/');
-      if (!res.ok) return;
-      const data = await res.json();
-      const tbody = document.querySelector('#tabla-todos-canciones tbody');
-      tbody.innerHTML = '';
-      if (!data.length) return tbody.innerHTML = '<tr><td colspan="7">Sin resultados</td></tr>';
-      data.forEach(c => {
-        const estado = c.eliminado ? "Eliminada" : "Activa";
-        const imagenHtml = c.id ? `<img src="/api/canciones_db/${c.id}/imagen" class="cancion-img" style="max-width:80px;max-height:80px;border-radius:6px;">` : '';
-        const row = `<tr${c.eliminado ? ' style="background:#900;color:#fff;"' : ''}>
-          <td>${c.id}</td>
-          <td>${c.titulo}</td>
-          <td>${c.genero}</td>
-          <td>${c.duracion}</td>
-          <td>${c.artista}</td>
-          <td>${estado}</td>
-          <td>${imagenHtml}</td>
-        </tr>`;
-        tbody.innerHTML += row;
-      });
-    }
-
-    // El resto de tu JS (PUT/PATCH/DELETE) puede quedarse igual,
-    // solo asegúrate de llamar cargarCanciones() cuando corresponda.
-    document.getElementById('btn-consulta-todos').addEventListener('click', cargarCanciones);
-    cargarCanciones();
+document.addEventListener('DOMContentLoaded', () => {
+  // Crear canción con imagen
+  document.getElementById('form-cancion').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const formData = new FormData(form);
+      // El checkbox si no está marcado, se debe enviar "false":
+      formData.delete('explicita');
+      formData.append('explicita', document.querySelector('[name="explicita"]:checked') ? "true" : "false");
+      try {
+          const res = await fetch('/api/canciones_db/', {
+              method: 'POST',
+              body: formData
+          });
+          if (!res.ok) throw new Error(await res.text());
+          form.reset();
+          cargarCanciones();
+      } catch (err) {
+          alert("Error agregando canción: " + err.message);
+      }
   });
+
+  // PUT: Actualizar canción con imagen
+  document.getElementById('btn-put-actualizar').addEventListener('click', async () => {
+    const id = document.getElementById('put-id').value.trim();
+    const titulo = document.getElementById('put-titulo').value.trim();
+    const genero = document.getElementById('put-genero').value.trim();
+    const duracion = document.getElementById('put-duracion').value.trim();
+    const artista = document.getElementById('put-artista').value.trim();
+    const explicita = document.getElementById('put-explicita').checked ? "true" : "false";
+    const imagenInput = document.getElementById('put-imagen');
+    if (!id || !titulo || !genero || !duracion || !artista) {
+        alert("Completa todos los campos para actualizar.");
+        return;
+    }
+    const formData = new FormData();
+    formData.append("titulo", titulo);
+    formData.append("genero", genero);
+    formData.append("duracion", duracion);
+    formData.append("artista", artista);
+    formData.append("explicita", explicita);
+    if (imagenInput && imagenInput.files[0]) {
+        formData.append("imagen", imagenInput.files[0]);
+    }
+    try {
+        const res = await fetch(`/api/canciones_db/${id}`, {
+            method: "PUT",
+            body: formData
+        });
+        if (!res.ok) throw new Error(await res.text());
+        cargarCanciones();
+    } catch (err) {
+        alert("Error al actualizar canción: " + err.message);
+    }
+  });
+
+  // PATCH: Actualizar campo de canción
+  document.getElementById('btn-patch-actualizar').addEventListener('click', async () => {
+    const id = document.getElementById('patch-id').value.trim();
+    const campo = document.getElementById('patch-campo').value.trim();
+    const valor = document.getElementById('patch-valor').value.trim();
+    if (!id || !campo || !valor) {
+        alert("Completa todos los campos para actualizar un campo.");
+        return;
+    }
+    try {
+        const res = await fetch(`/api/canciones_db/${id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ [campo]: valor })
+        });
+        if (!res.ok) throw new Error(await res.text());
+        cargarCanciones();
+    } catch (err) {
+        alert("Error al actualizar campo: " + err.message);
+    }
+  });
+
+  // DELETE: Eliminar canción
+  document.getElementById('btn-eliminar').addEventListener('click', async () => {
+    const id = document.getElementById('delete-id').value.trim();
+    if (!id) {
+        alert("Introduce el ID a eliminar.");
+        return;
+    }
+    if (!confirm("¿Seguro que deseas eliminar la canción?")) return;
+    try {
+        const res = await fetch(`/api/canciones_db/${id}`, { method: "DELETE" });
+        if (!res.ok) throw new Error(await res.text());
+        cargarCanciones();
+    } catch (err) {
+        alert("Error al eliminar canción: " + err.message);
+    }
+  });
+
+  // Consultar todas las canciones
+  document.getElementById('btn-consulta-todos').addEventListener('click', cargarCanciones);
+
+  async function cargarCanciones() {
+    let res = await fetch('/api/canciones_db/');
+    if (!res.ok) return;
+    const data = await res.json();
+    const tbody = document.querySelector('#tabla-todos-canciones tbody');
+    tbody.innerHTML = '';
+    if (!data.length) return tbody.innerHTML = '<tr><td colspan="7">Sin resultados</td></tr>';
+    data.forEach(c => {
+      const estado = c.eliminado ? "Eliminada" : "Activa";
+      const imagenHtml = c.id ? `<img src="/api/canciones_db/${c.id}/imagen" class="cancion-img" style="max-width:80px;max-height:80px;border-radius:6px;">` : '';
+      const row = `<tr${c.eliminado ? ' style="background:#900;color:#fff;"' : ''}>
+        <td>${c.id}</td>
+        <td>${c.titulo}</td>
+        <td>${c.genero}</td>
+        <td>${c.duracion}</td>
+        <td>${c.artista}</td>
+        <td>${estado}</td>
+        <td>${imagenHtml}</td>
+      </tr>`;
+      tbody.innerHTML += row;
+    });
+  }
+
+  // Buscar canciones en Spotify
+  const spotifyBtn = document.getElementById('spotify-cancion-btn');
+  spotifyBtn?.addEventListener('click', async () => {
+    const query = document.getElementById('spotify-cancion-query').value;
+    if (!query.trim()) return alert("Escribe un título de canción");
+    const res = await fetch(`/api/spotify/canciones?titulo=${encodeURIComponent(query)}`);
+    const data = await res.json();
+    const tbody = document.querySelector('#tabla-spotify-canciones tbody');
+    tbody.innerHTML = '';
+    if (!data.length) return tbody.innerHTML = '<tr><td colspan="3">Sin resultados</td></tr>';
+    data.forEach(c => {
+      const row = `<tr><td>${c.nombre}</td><td>${c.artista}</td><td>${c.album}</td></tr>`;
+      tbody.innerHTML += row;
+    });
+  });
+
+  cargarCanciones();
+});
 </script>
 <footer>
   <img src="/static/img/footer.jpg" alt="Banner Footer">
   <p>© 2025 Proyecto Integrador</p>
 </footer>
-<!-- Si tuvieras un canciones.js aparte, puedes quitar el src para no duplicar funciones -->
 </body>
 </html>
