@@ -6,7 +6,7 @@ if os.getenv("RENDER") is None:
     from dotenv import load_dotenv
     load_dotenv()
 
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
@@ -17,6 +17,10 @@ from utils.connection_db import init_db, get_session
 from routes.artistas import router as artistas_router
 from routes.canciones import router as ruta_canciones
 from routes.info import ruta_info
+
+from sqlalchemy.future import select
+from sqlmodel.ext.asyncio.session import AsyncSession
+from models import ArtistaDB, CancionDB
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -120,3 +124,13 @@ async def buscar_canciones_spotify(titulo: str):
 async def spotify_canciones(q: str):
     data = await spotify_search(q, "track")
     return data
+
+@app.get("/api/artistas_db/all")
+async def get_all_artistas(session: AsyncSession = Depends(get_session)):
+    result = await session.execute(select(ArtistaDB))
+    return result.scalars().all()
+
+@app.get("/api/canciones_db/all")
+async def get_all_canciones(session: AsyncSession = Depends(get_session)):
+    result = await session.execute(select(CancionDB))
+    return result.scalars().all()
