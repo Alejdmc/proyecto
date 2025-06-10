@@ -34,3 +34,4 @@ async def spotify_search(query: str, type_: str):
             response = await client.get(f"{SPOTIFY_BASE_URL}/search", params={"q": query, "type": type_}, headers=headers)
         response.raise_for_status()
         return response.json()
+    #a
