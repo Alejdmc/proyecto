@@ -21,9 +21,6 @@ async def crear_cancion(
     imagen_bytes = None
     if imagen and imagen.filename:
         imagen_bytes = await imagen.read()
-        print("Tamaño de imagen recibida (canción):", len(imagen_bytes))
-    else:
-        print("No se recibió imagen para canción")
     cancion = CancionDB(
         titulo=titulo,
         genero=genero,
@@ -35,37 +32,26 @@ async def crear_cancion(
     session.add(cancion)
     await session.commit()
     await session.refresh(cancion)
-    return {
-        **cancion.dict(),
-        "tiene_imagen": bool(cancion.imagen_bytes)
-    }
+    return cancion
 
 @router.get("/", response_model=List[CancionResponse])
 async def get_canciones(session: AsyncSession = Depends(get_session)):
     result = await session.execute(select(CancionDB).where(CancionDB.eliminado == False))
-    canciones = result.scalars().all()
-    return [
-        {**c.dict(), "tiene_imagen": bool(c.imagen_bytes)} for c in canciones
-    ]
+    return result.scalars().all()
 
 @router.get("/{cancion_id}", response_model=CancionResponse)
 async def get_cancion_por_id(cancion_id: int, session: AsyncSession = Depends(get_session)):
     cancion = await session.get(CancionDB, cancion_id)
     if not cancion or cancion.eliminado:
         raise HTTPException(status_code=404, detail="Canción no encontrada")
-    return {
-        **cancion.dict(),
-        "tiene_imagen": bool(cancion.imagen_bytes)
-    }
+    return cancion
 
 @router.get("/{cancion_id}/imagen")
 async def obtener_imagen_cancion(cancion_id: int, session: AsyncSession = Depends(get_session)):
     cancion = await session.get(CancionDB, cancion_id)
-    if not cancion or cancion.eliminado:
-        raise HTTPException(status_code=404, detail="Canción no encontrada")
-    if cancion.imagen_bytes:
-        return Response(content=cancion.imagen_bytes, media_type="image/jpeg")
-    return Response(status_code=204)
+    if not cancion or not cancion.imagen_bytes:
+        raise HTTPException(status_code=404, detail="Imagen no encontrada")
+    return Response(content=cancion.imagen_bytes, media_type="image/jpeg")
 
 @router.put("/{cancion_id}", response_model=CancionResponse)
 async def put_cancion(
@@ -90,10 +76,7 @@ async def put_cancion(
         cancion.imagen_bytes = await imagen.read()
     await session.commit()
     await session.refresh(cancion)
-    return {
-        **cancion.dict(),
-        "tiene_imagen": bool(cancion.imagen_bytes)
-    }
+    return cancion
 
 @router.patch("/{cancion_id}", response_model=CancionResponse)
 async def patch_cancion(
@@ -110,10 +93,7 @@ async def patch_cancion(
                 setattr(cancion, key, value)
     await session.commit()
     await session.refresh(cancion)
-    return {
-        **cancion.dict(),
-        "tiene_imagen": bool(cancion.imagen_bytes)
-    }
+    return cancion
 
 @router.delete("/{cancion_id}")
 async def delete_cancion(cancion_id: int, session: AsyncSession = Depends(get_session)):
