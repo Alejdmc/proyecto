@@ -1,6 +1,7 @@
 from sqlmodel import SQLModel, Field, Column, LargeBinary
 from typing import Optional
 
+# MODELO DE BASE DE DATOS PARA ARTISTAS
 class ArtistaDB(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     nombre: str
@@ -10,6 +11,7 @@ class ArtistaDB(SQLModel, table=True):
     imagen_bytes: Optional[bytes] = Field(sa_column=Column(LargeBinary), default=None, repr=False)
     eliminado: bool = Field(default=False)
 
+# MODELO DE BASE DE DATOS PARA CANCIONES
 class CancionDB(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     titulo: str
@@ -20,6 +22,7 @@ class CancionDB(SQLModel, table=True):
     imagen_bytes: Optional[bytes] = Field(sa_column=Column(LargeBinary), default=None, repr=False)
     eliminado: bool = Field(default=False)
 
+# MODELOS DE RESPUESTA (para evitar el error de serialización)
 class ArtistaResponse(SQLModel):
     id: int
     nombre: str
