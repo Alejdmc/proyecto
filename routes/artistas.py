@@ -1,12 +1,13 @@
 from fastapi import APIRouter, Form, File, UploadFile, Depends, HTTPException, Response
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.future import select
-from models import ArtistaDB
+from typing import List
+from models import ArtistaDB, ArtistaResponse
 from utils.connection_db import get_session
 
 router = APIRouter(prefix="/api/artistas_db", tags=["artistas"])
 
-@router.post("/")
+@router.post("/", response_model=ArtistaResponse)
 async def crear_artista(
     nombre: str = Form(...),
     pais: str = Form(...),
@@ -31,12 +32,12 @@ async def crear_artista(
     await session.refresh(artista)
     return artista
 
-@router.get("/")
+@router.get("/", response_model=List[ArtistaResponse])
 async def get_artistas(session: AsyncSession = Depends(get_session)):
     result = await session.execute(select(ArtistaDB).where(ArtistaDB.eliminado == False))
     return result.scalars().all()
 
-@router.get("/{artista_id}")
+@router.get("/{artista_id}", response_model=ArtistaResponse)
 async def get_artista_por_id(artista_id: int, session: AsyncSession = Depends(get_session)):
     artista = await session.get(ArtistaDB, artista_id)
     if not artista or artista.eliminado:
@@ -48,9 +49,9 @@ async def obtener_imagen_artista(artista_id: int, session: AsyncSession = Depend
     artista = await session.get(ArtistaDB, artista_id)
     if not artista or not artista.imagen_bytes:
         raise HTTPException(status_code=404, detail="Imagen no encontrada")
-    return Response(content=artista.imagen_bytes, media_type="image/jpeg")  # Cambia a image/png si corresponde
+    return Response(content=artista.imagen_bytes, media_type="image/jpeg")
 
-@router.put("/{artista_id}")
+@router.put("/{artista_id}", response_model=ArtistaResponse)
 async def put_artista(
     artista_id: int,
     nombre: str = Form(...),
@@ -73,7 +74,7 @@ async def put_artista(
     await session.refresh(artista)
     return artista
 
-@router.patch("/{artista_id}")
+@router.patch("/{artista_id}", response_model=ArtistaResponse)
 async def patch_artista(
     artista_id: int,
     data: dict = None,
@@ -84,7 +85,7 @@ async def patch_artista(
         raise HTTPException(status_code=404, detail="Artista no encontrado")
     if data:
         for key, value in data.items():
-            if hasattr(artista, key) and key != "id":
+            if hasattr(artista, key) and key not in ("id", "imagen_bytes"):
                 setattr(artista, key, value)
     await session.commit()
     await session.refresh(artista)
