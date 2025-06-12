@@ -1,5 +1,4 @@
 import os
-
 from spotify_client import spotify_search
 
 if os.getenv("RENDER") is None:
